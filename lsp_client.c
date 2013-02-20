@@ -30,7 +30,45 @@ lsp_client* lsp_client_create(const char* src, const char* port)
 	lsp_client *client = malloc(sizeof(lsp_client));
 	client->info = sock_n_conn(src, port);
 	
-	client->message_seq_num = 0;
+	/* create the connection request packet */
+	LSPMessage msg = LSPMESSAGE__INIT;
+	uint8_t* buffer;
+	unsigned response_size = 0, request_size;
+	
+	msg.connid = -1;
+	msg.seqnum = 0;
+	msg.payload.data = NULL;
+	msg.payload.len = 0;
+	request_size = lspmessage__get_packed_size(&msg);
+	buffer = malloc(request_size);
+	lspmessage__pack(&msg, buffer);
+	
+	int i = 0;
+	uint8_t response[256];	//server response should be pretty small
+	memset(response, 0, 256);
+	bool sent;
+	while(i < 5 && response_size <= 0){	//keep trying to send connection request up to 5 times
+		sent = cli_send(client->info, buffer, request_size);
+		sleep(1);		//wait a moment
+		response_size = cli_recv(client->info, response);	
+		if(response_size > 0){
+			LSPMessage *message;
+			message = lspmessage__unpack(NULL, response_size, response);
+			client->conn_id = message->connid;
+			client->message_seq_num = 0;
+			printf("Received connection id %d\n", client->conn_id);
+			sent = cli_send(client->info, response, response_size);	//send an ack containing exactly what the server gave us
+			break;
+		}
+		i++;
+	}
+	if(!sent){
+		printf("Failed to send packet, error on client side\n");
+		free(client);
+		return NULL;
+	}
+	free(buffer);
+	//TODO: free packed messages
 	return client;
 }
 
