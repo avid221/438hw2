@@ -24,7 +24,7 @@ typedef struct{
 
 }UDPserver;
 
-UDPserver *sock_n_bind(const char* port);
+UDPserver *sock_n_bind( const char* portNum);
 
 int serv_listen(UDPserver *a_srv, int max_clients);
 
@@ -41,10 +41,14 @@ int serverFD;
 
 }UDPclient;
 
-UDPclient *sock_n_conn(const char* src, const char* port);
+UDPclient *sock_n_conn(const char* src,  const char* portNum);
 
-bool cli_send(UDPclient *a_client, LSPMessage *payload, int length);
+bool cli_send(UDPclient *a_client, void *payload, int length);
 
 int cli_recv(UDPclient *a_client, uint8_t *payload);
 
 bool cli_close(UDPclient *a_client);
+
+//void itoa(int number, char* word);
+
+//unsigned generateMessage(LSPMessage *msg, int conn_id, void* pld, int msg_len, int seq_num, void* buffer);

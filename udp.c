@@ -1,6 +1,5 @@
 #include "udp.h"
 
-
 /*
 	makes use of the traditional UDP layer to create the 
 	server & client	for our purposes
@@ -8,11 +7,11 @@
 */
 
 
-
-
-UDPserver* sock_n_bind(const char* port){
+UDPserver* sock_n_bind( const char* port){
 	int serverFD, clientFD, buf_size, status, i;
 	struct addrinfo settings, *temp_addr_info, *server;
+	//char newport[5], *port = &newport;
+	//itoa(portNum, port, 10);
 	
 	UDPserver *this = malloc(sizeof(UDPserver));
 
@@ -57,11 +56,6 @@ UDPserver* sock_n_bind(const char* port){
 	return this;
 }
 
-int serv_listen_to(UDPserver *servInfo, int max_clients){
-	
-}
-
-
 bool serv_send(UDPserver *a_srv, void* payload, int length, struct sockaddr dest){
 	int addr_size = sizeof(dest);
 
@@ -76,7 +70,7 @@ bool serv_send(UDPserver *a_srv, void* payload, int length, struct sockaddr dest
 
 
 int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source){
-	memset(payload, 0, 1024);
+	//memset(payload, 0, 1024);
 
 	int fromlen  = sizeof *source;
 
@@ -108,30 +102,19 @@ int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source){
 	}else 
 		return poll_rslt;
 }
-/*
-int check_record(UDPserver* a_srv, struct sockaddr source){
-	int i;
-	for(i = 0; i < 10; i++){
-		if(a_srv->clients[i]->clientAddr == source)
-			return i;
-		else if(a_srv->clients[i] == NULL){
-			a_srv->clients[i]->clientAddr = source;
-			return i;
-		}	
-	}
-	printf("Received connection request from client, but server is full\n");
-}
-*/
+
 bool serv_close(UDPserver* a_srv){
 	close(a_srv->serverFD);
 	free(a_srv);
 	return true;
 }
 
-UDPclient* sock_n_conn(const char* src, const char* port)
+UDPclient* sock_n_conn(const char* src,  const char* port)
 {
 	struct addrinfo *server, settings;
 	int serverFD, status;
+	//char newport[5], *port = &newport;
+	//itoa(portNum, port, 10);
 
 	UDPclient *this = malloc(sizeof(UDPclient));
 
@@ -167,7 +150,7 @@ UDPclient* sock_n_conn(const char* src, const char* port)
 }
 
 int cli_recv(UDPclient *a_client, uint8_t* payload){
-	memset(payload, 0, 1024);
+	//memset(payload, 0, 1024);
 	struct pollfd ufds;
 	ufds.fd = a_client->serverFD;
 	ufds.events = POLLIN;
@@ -191,7 +174,7 @@ int cli_recv(UDPclient *a_client, uint8_t* payload){
 		return poll_rslt;
 }
 
-bool cli_send(UDPclient *a_client, LSPMessage *payload, int length){
+bool cli_send(UDPclient *a_client, void *payload, int length){
 	if(payload == NULL) return false;
 
 	int buf_size = send(a_client->serverFD, payload, length, 0);
@@ -209,3 +192,44 @@ bool cli_close(UDPclient *a_client){
 	return true;
 }
 
+/*
+	RANDOM UTILITIES
+*/
+/*
+void itoa(int number, char* word){
+printf("test\n");
+	sprintf(*word, "%d", number);
+printf("test\n");
+}
+*/
+/*
+int check_record(UDPserver* a_srv, struct sockaddr source){
+	int i;
+	for(i = 0; i < 10; i++){
+		if(a_srv->clients[i]->clientAddr == source)
+			return i;
+		else if(a_srv->clients[i] == NULL){
+			a_srv->clients[i]->clientAddr = source;
+			return i;
+		}	
+	}
+	printf("Received connection request from client, but server is full\n");
+}
+*/
+
+
+unsigned generateMessage(LSPMessage *msg, int conn_id, uint8_t* pld, int msg_len, int seq_num, void* buffer){
+
+	unsigned response_size;
+	msg->connid = conn_id;
+	msg->seqnum = seq_num;
+	msg->payload.data = malloc(sizeof(uint8_t) * msg_len);
+	msg->payload.len = msg_len;
+	if(msg_len > 0) memcpy(msg->payload.data, pld, msg_len * sizeof(uint8_t));
+	response_size = lspmessage__get_packed_size(msg);
+	
+	buffer = malloc(response_size);
+	lspmessage__pack(msg, buffer);
+	
+	return response_size;
+}
