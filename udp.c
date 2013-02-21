@@ -70,7 +70,7 @@ bool serv_send(UDPserver *a_srv, void* payload, int length, struct sockaddr dest
 
 
 int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source){
-	//memset(payload, 0, 1024);
+	//memset(payload, 0, MAX_PACKET_SIZE);
 
 	int fromlen  = sizeof *source;
 
@@ -84,7 +84,7 @@ int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source){
 	if((poll_rslt = poll(&ufds, nfds, timeout) > 0)){
 		int buf_size;
 		
-		buf_size = recvfrom(a_srv->serverFD, payload, 1024, 0, source, &fromlen);
+		buf_size = recvfrom(a_srv->serverFD, payload, MAX_PACKET_SIZE, 0, source, &fromlen);
 		if (buf_size < 0)
 		{
 		     perror("Error reading from socket");
@@ -92,10 +92,8 @@ int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source){
 		}
 		else{
 			char ipstr[INET_ADDRSTRLEN];
-			printf("recv()'d %d bytes ", buf_size);
-			printf("from IP address %s\n", inet_ntop(AF_INET, source->sa_data, ipstr, sizeof ipstr));
-		
-			//*conn_id = check_record(a_srv, source);
+			//printf("recv()'d %d bytes ", buf_size);
+			//printf("from IP address %s\n", inet_ntop(AF_INET, source->sa_data, ipstr, sizeof ipstr));
 		
 			return buf_size;
 		}
@@ -150,7 +148,7 @@ UDPclient* sock_n_conn(const char* src,  const char* port)
 }
 
 int cli_recv(UDPclient *a_client, uint8_t* payload){
-	//memset(payload, 0, 1024);
+	//memset(payload, 0, MAX_PACKET_SIZE);
 	struct pollfd ufds;
 	ufds.fd = a_client->serverFD;
 	ufds.events = POLLIN;
@@ -167,7 +165,7 @@ int cli_recv(UDPclient *a_client, uint8_t* payload){
 			return -1;
 		}
 		else{
-			printf("recv()'d %d bytes\n", buf_size);
+			//printf("recv()'d %d bytes\n", buf_size);
 			return buf_size;
 		}
 	}else 
@@ -195,13 +193,9 @@ bool cli_close(UDPclient *a_client){
 /*
 	RANDOM UTILITIES
 */
-/*
-void itoa(int number, char* word){
-printf("test\n");
-	sprintf(*word, "%d", number);
-printf("test\n");
-}
-*/
+
+
+
 /*
 int check_record(UDPserver* a_srv, struct sockaddr source){
 	int i;
@@ -217,7 +211,7 @@ int check_record(UDPserver* a_srv, struct sockaddr source){
 }
 */
 
-
+/*
 unsigned generateMessage(LSPMessage *msg, int conn_id, uint8_t* pld, int msg_len, int seq_num, void* buffer){
 
 	unsigned response_size;
@@ -233,3 +227,4 @@ unsigned generateMessage(LSPMessage *msg, int conn_id, uint8_t* pld, int msg_len
 	
 	return response_size;
 }
+*/

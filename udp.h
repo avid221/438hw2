@@ -16,6 +16,8 @@
 #include <sys/poll.h>
 #include "lspmessage.pb-c.h"
 
+#define MAX_CLIENTS 11	//we don't want conn_id = 0, and it would be risky to subtract 1 from all array indexes, so the array is size MAX_CLIENTS, but in reality we only have 10 clients
+#define MAX_PACKET_SIZE 1024
 
 typedef struct{
 

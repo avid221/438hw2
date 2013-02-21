@@ -25,8 +25,11 @@ void lsp_set_drop_rate(double rate){drop_rate = rate;}
  *
  */  
 
-lsp_client* lsp_client_create(const char* src, const char* port)
+lsp_client* lsp_client_create(const char* src, int portNum)
 {
+	char *port = malloc(4*sizeof(char));
+	sprintf(port, "%d", portNum);
+	
 	lsp_client *client = malloc(sizeof(lsp_client));
 	client->info = sock_n_conn(src, port);
 	
@@ -34,8 +37,7 @@ lsp_client* lsp_client_create(const char* src, const char* port)
 	LSPMessage msg = LSPMESSAGE__INIT;
 	uint8_t* buffer;
 	unsigned response_size = 0, request_size;
-	
-	msg.connid = -1;
+	msg.connid = 0;
 	msg.seqnum = 0;
 	msg.payload.data = NULL;
 	msg.payload.len = 0;
@@ -43,6 +45,7 @@ lsp_client* lsp_client_create(const char* src, const char* port)
 	buffer = malloc(request_size);
 	lspmessage__pack(&msg, buffer);
 	
+	/* send the connection reques */
 	int i = 0;
 	uint8_t response[256];	//server response should be pretty small
 	memset(response, 0, 256);
@@ -69,6 +72,7 @@ lsp_client* lsp_client_create(const char* src, const char* port)
 	}
 	free(buffer);
 	//TODO: free packed messages
+	free(port);
 	return client;
 }
 
@@ -76,9 +80,9 @@ lsp_client* lsp_client_create(const char* src, const char* port)
 
 int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 {
-	memset(pld, 0, 1024);
+	memset(pld, 0, MAX_PACKET_SIZE);
 	LSPMessage *message;
-	uint8_t buf[1024];
+	uint8_t buf[MAX_PACKET_SIZE];
 	
 	int length = cli_recv(a_client->info, buf);
 	
@@ -136,6 +140,10 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 
 bool lsp_client_close(lsp_client* a_client)
 {
+	//inform the server we will be closing
+	
+	
+	
 	if(cli_close(a_client->info))
 		printf("Connection closed\n");
 	free(a_client);
