@@ -27,10 +27,10 @@ void lsp_set_drop_rate(double rate){drop_rate = rate;}
 
 lsp_client* lsp_client_create(const char* src, int portNum)
 {
-	char *port = malloc(4*sizeof(char));
+	char *port = (char*)malloc(4*sizeof(char));
 	sprintf(port, "%d", portNum);
 	
-	lsp_client *client = malloc(sizeof(lsp_client));
+	lsp_client *client = (lsp_client*)malloc(sizeof(lsp_client));
 	client->info = sock_n_conn(src, port);
 	
 	/* create the connection request packet */
@@ -42,7 +42,7 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 	msg.payload.data = NULL;
 	msg.payload.len = 0;
 	request_size = lspmessage__get_packed_size(&msg);
-	buffer = malloc(request_size);
+	buffer = (uint8_t*)malloc(request_size);
 	lspmessage__pack(&msg, buffer);
 	
 	/* send the connection reques */
@@ -94,9 +94,9 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 		return -1;
 	}
 	
-	length = strlen(message->payload.data);
+	length = strlen((char*) message->payload.data);
 	int i;
-	char* temp = pld;
+	char* temp = (char*)pld;
 	for(i = 0; i < length; i++){
 		*(char*)temp++ = message->payload.data[i];
 	}
@@ -115,13 +115,13 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 	LSPMessage msg = LSPMESSAGE__INIT;
 	msg.connid = a_client->conn_id;
 	msg.seqnum = ++a_client->message_seq_num;
-	msg.payload.data = malloc(sizeof(uint8_t) * length);
+	msg.payload.data = (uint8_t*)malloc(sizeof(uint8_t) * length);
 	msg.payload.len = length;
 	memcpy(msg.payload.data, pld, length * sizeof(uint8_t));
 	
 	size = lspmessage__get_packed_size(&msg);
 	buffer = malloc(size);
-	lspmessage__pack(&msg, buffer);
+	lspmessage__pack(&msg, (uint8_t*)buffer);
 	
 	bool sent = cli_send(a_client->info, buffer, size);
 	
@@ -141,7 +141,37 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 bool lsp_client_close(lsp_client* a_client)
 {
 	//inform the server we will be closing
+	LSPMessage msg = LSPMESSAGE__INIT;
+	uint8_t* buffer;
+	unsigned response_size = 0, request_size;
+	msg.connid = a_client->conn_id;
+	msg.seqnum = -1;
+	msg.payload.data = NULL;
+	msg.payload.len = 0;
+	request_size = lspmessage__get_packed_size(&msg);
+	buffer = (uint8_t*)malloc(request_size);
+	lspmessage__pack(&msg, buffer);
 	
+	/* send the connection request */
+	int i = 0;
+	uint8_t response[256];	//server response should be pretty small
+	memset(response, 0, 256);
+	bool sent;
+	while(i < 5 && response_size <= 0){	//keep trying to send connection request up to 5 times
+		sent = cli_send(a_client->info, buffer, request_size);
+		sleep(1);		//wait a moment
+		response_size = cli_recv(a_client->info, response);	
+		if(response_size > 0){
+			LSPMessage *message;
+			message = lspmessage__unpack(NULL, response_size, response);
+			a_client->conn_id = message->connid;
+			a_client->message_seq_num = 0;
+			printf("Received connection id %d\n", a_client->conn_id);
+			sent = cli_send(a_client->info, response, response_size);	//send an ack containing exactly what the server gave us
+			break;
+		}
+		i++;
+	}
 	
 	
 	if(cli_close(a_client->info))

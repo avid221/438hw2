@@ -27,10 +27,10 @@ void lsp_set_drop_rate(double rate){drop_rate = rate;}
 
 lsp_server* lsp_server_create(int portNum)
 {
-	char *port = malloc(4*sizeof(char));
+	char *port = (char*)malloc(4*sizeof(char));
 	sprintf(port, "%d", portNum);
 	
-	lsp_server *server = malloc(sizeof(lsp_server));
+	lsp_server *server = (lsp_server*)malloc(sizeof(lsp_server));
 	server->info = sock_n_bind(port);	
 	
 	int i;
@@ -66,10 +66,10 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 	for(i = 0; i < MAX_CLIENTS; i++){	//is this message from someone we know?
 		if(a_srv->clients[i].conn_id == message->connid){
 			*conn_id = message->connid;	//inform the server who has sent the message
-			length = strlen(message->payload.data);		
+			length = strlen((char*)message->payload.data);		
 			
 			for(i = 0; i < length; i++){	//load the message into the buffer we were passed to read
-				*(char*)pld++ = message->payload.data[i];
+				((char*)pld)[i] = message->payload.data[i];
 			}
 			lspmessage__free_unpacked(message, NULL);
 			return length;
@@ -108,7 +108,7 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 		msg.payload.data = NULL;
 		msg.payload.len = 0;
 		response_size = lspmessage__get_packed_size(&msg);
-		buffer = malloc(response_size);
+		buffer = (uint8_t*)malloc(response_size);
 		lspmessage__pack(&msg, buffer);
 
 		uint8_t response[256];
@@ -153,13 +153,13 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int length, uint32_t connect
 	LSPMessage msg = LSPMESSAGE__INIT;
 	msg.connid = a_srv->clients[connection_id].conn_id;
 	msg.seqnum = ++a_srv->clients[connection_id].message_seq_num;
-	msg.payload.data = malloc(sizeof(uint8_t) * length);
+	msg.payload.data = (uint8_t*)malloc(sizeof(uint8_t) * length);
 	msg.payload.len = length;
 	memcpy(msg.payload.data, pld, length * sizeof(uint8_t));
 	
 	size = lspmessage__get_packed_size(&msg);
 	buffer = malloc(size);
-	lspmessage__pack(&msg, buffer);
+	lspmessage__pack(&msg, (uint8_t*)buffer);
 
 	bool sent = serv_send(a_srv->info, buffer, size, a_srv->clients[connection_id].clientAddr);
 	

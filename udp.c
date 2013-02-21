@@ -13,7 +13,7 @@ UDPserver* sock_n_bind( const char* port){
 	//char newport[5], *port = &newport;
 	//itoa(portNum, port, 10);
 	
-	UDPserver *this = malloc(sizeof(UDPserver));
+	UDPserver *servInfo = (UDPserver*)malloc(sizeof(UDPserver));
 
     memset(&settings, 0, sizeof(settings));
     settings.ai_family = AF_INET;
@@ -50,10 +50,10 @@ UDPserver* sock_n_bind( const char* port){
 	
 	freeaddrinfo(server);
 	
-	this->server = server;
-	this->serverFD = serverFD;
+	servInfo->server = server;
+	servInfo->serverFD = serverFD;
 	
-	return this;
+	return servInfo;
 }
 
 bool serv_send(UDPserver *a_srv, void* payload, int length, struct sockaddr dest){
@@ -84,7 +84,7 @@ int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source){
 	if((poll_rslt = poll(&ufds, nfds, timeout) > 0)){
 		int buf_size;
 		
-		buf_size = recvfrom(a_srv->serverFD, payload, MAX_PACKET_SIZE, 0, source, &fromlen);
+		buf_size = recvfrom(a_srv->serverFD, payload, MAX_PACKET_SIZE, 0, source, ((socklen_t*)(&fromlen)));
 		if (buf_size < 0)
 		{
 		     perror("Error reading from socket");
@@ -114,7 +114,7 @@ UDPclient* sock_n_conn(const char* src,  const char* port)
 	//char newport[5], *port = &newport;
 	//itoa(portNum, port, 10);
 
-	UDPclient *this = malloc(sizeof(UDPclient));
+	UDPclient *clientInfo = (UDPclient*)malloc(sizeof(UDPclient));
 
 	memset(&settings, 0, sizeof settings);
 	settings.ai_family = AF_INET;
@@ -139,12 +139,12 @@ UDPclient* sock_n_conn(const char* src,  const char* port)
         break;
     }
 	
-	this->serverFD = serverFD;
-	this->server = server;
+	clientInfo->serverFD = serverFD;
+	clientInfo->server = server;
 	
 	printf("Connection request sent on socket %d\n", serverFD);
 	
-	return this;
+	return clientInfo;
 }
 
 int cli_recv(UDPclient *a_client, uint8_t* payload){
