@@ -1,4 +1,5 @@
 #include "lsp_client.h"
+#include "worker.h"
 	
 int main(int argc, char** argv) 
 {
