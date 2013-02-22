@@ -184,9 +184,9 @@ public:
             else if(c == 'c') {
 
                 char * hash, * high,* low;
-                strtok(buf, ":");
-                hash = strtok(NULL, ":");
-                low = strtok(NULL, ":");
+                strtok(buf, " :");
+                hash = strtok(NULL, " :");
+                low = strtok(NULL, " :");
                 high = strtok(NULL, "\n");
                 Assign new_assignment(low, high, hash);
                 new_assignment.client = conn_id;
@@ -204,7 +204,7 @@ public:
 
                 if(a != busy.end()) {
                     lsp_server_write(connection, buf, bytes, a->client);
-                    strtok(buf, ":");
+                    strtok(buf, " :");
                     char * pass = strtok(NULL, "\n");
                     printf("Found: %s\n", pass);
                     a->kill(conn_id);
