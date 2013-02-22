@@ -10,25 +10,30 @@ finagle with adding words to a uin8_t*
 */
 Worker::Worker(const char* dest, int port){
 	lsp_client* client = lsp_client_create(dest, port);
-	lsp_client_write(client, (uint8_t*)'j', 1);
+	cout << "made client" << endl;
+	lsp_client_write(client, (uint8_t*)"j", strlen((const char*)"j"));
+	cout << "wrote" << endl;
 	
 	unsigned char* result = (unsigned char*)malloc(sizeof(unsigned char*) * 20);
 	uint8_t* payload = (uint8_t*)malloc(sizeof(uint8_t*) * 20);
 		
 	while(true){
-		lsp_client_read(client, payload);  //retrieves target hash from server
+		if(lsp_client_read(client, payload) > 0){  //retrieves target hash from server
+		
+			cout << "before for" << endl;
+			vector<string> possible = combos(strlen((const char*)payload));
+			for(int i = 0; i < possible.size(); i++){
+				cout << "before sha" << endl;
+				SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)sizeof(possible[i]), result);
 
-		vector<string> possible = combos(strlen((const char*)payload));
-		for(int i = 0; i < possible.size(); i++){
-			SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)sizeof(possible[i]), result);
-
-			if(result == payload){
-				//success += possible[i];
-				lsp_client_write(client, (uint8_t*)"f pass", strlen((const char*)"f pass"));
-				break;
-			}
-			else if(i == possible.size()-1){
-				lsp_client_write(client, (uint8_t*)"x", strlen((const char*)"x"));
+				if(result == payload){
+					//success += possible[i];
+					lsp_client_write(client, (uint8_t*)"f pass", strlen((const char*)"f pass"));
+					break;
+				}
+				else if(i == possible.size()-1){
+					lsp_client_write(client, (uint8_t*)"x", strlen((const char*)"x"));
+				}
 			}
 		}
 	}
