@@ -27,8 +27,15 @@ Worker::Worker(const char* dest, int port){
 				SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)sizeof(possible[i]), result);
 
 				if(result == payload){
-					//success += possible[i];
-					lsp_client_write(client, (uint8_t*)"f pass", strlen((const char*)"f pass"));
+					string raw_success = "f";
+					raw_success += " " + possible[i];
+					
+					uint8_t* success = (uint8_t*)malloc(sizeof(uint8_t*) * raw_success.length());
+					strcpy((uint8_t*)success, raw_success);
+					
+					lsp_client_write(client, (uint8_t*)success, strlen((const char*)success));
+					
+					free(success);
 					break;
 				}
 				else if(i == possible.size()-1){
@@ -37,6 +44,8 @@ Worker::Worker(const char* dest, int port){
 			}
 		}
 	}
+	free(result);
+	free(payload);
 }
 
 vector<string> Worker::combos(int length){
@@ -75,7 +84,7 @@ vector<string> Worker::combos(int length){
 
 int main(){
 	const char* dest = "127.0.0.1";
-	int port = 7777;
+	int port = 7779;
 	Worker worker(dest, port);
 }
 
