@@ -4,7 +4,8 @@
 #include <list>
 #include <string>
 #include <math.h>
-#include "lsp.h"
+#include "lsp_server.h"
+#include "lsp_client.h"
 
 using namespace std;
 
@@ -65,7 +66,7 @@ vector<string> split(const char* s1, const char* s2, int z) {
 
     for(int i=1; i<z; i++) {
 
-            s.push_back( tostring(temp*i) );
+        s.push_back( tostring(temp*i) );
     }
 
     s.push_back(string(s2));
@@ -165,9 +166,70 @@ public:
             busy.push_back(job);
         }
     }
+    //*** This shit needs work***
+    bool connected(uint32_t worker) {} //how is the client handling this
+    void read(){
+        
+        uint32_t conn_id;
+        char buf[66000];
+        memset(buf, 0, 66000);
+        int bytes = lsp_server_read(connection, buf, &conn_id);
+        
+        if(bytes > 0) {
+            char c = buf[0];
+            if(c == 'j') {
 
-    bool connected() {} //how is the client handling this
-    void read(){}
+                // Worker joins
+                freeworkers.push_back(conn_id);
+                printf("Worker %d joined.\n", conn_id);
+            }
+            else if(c == 'c') {
+
+                char * hash, high, low;
+                strtok(buf, ":");
+                hash = strtok(NULL, ":");
+                low = strtok(NULL, ":");
+                high = strtok(NULL, "\n");
+                Assign new_assignment(low, high, hash);
+                new_assignment.client = conn_id;
+                notbusy.push_back(new_assignment);
+                printf("Request from client %d.\n", conn_id);
+            }
+            else if(c == 'f') {
+
+                // Password found
+                list<Assign>::iterator a = busy.begin();
+
+                while(a != busy.end() && !a->assigned(conn_id)) {
+                    a++;
+                }
+
+                if(a != busy.end()) {
+                    lsp_server_write(connection, buf, bytes, a->client);
+                    strtok(buf, ":");
+                    char * pass = strtok(NULL, "\n");
+                    printf("Found: %s\n", pass);
+                    a->kill(conn_id);
+                    freeworkers.push_back(conn_id);
+                    a->result = string(pass);
+                }  
+            }
+            else if(c == 'x') {
+
+                // Password not found
+                list<Assign>::iterator a = busy.begin();
+
+                while(a != busy.end() && !a->assigned(conn_id)) {
+                    a++;
+                }
+
+                if(a != busy.end()) {
+                    a->kill(conn_id);
+                    printf("Not Found");
+                }
+            }
+        }
+    }
     void killdoneassigns() {
 
         list<Assign>::iterator it = busy.begin();
@@ -189,32 +251,62 @@ public:
             }
         }
     }
-    void killdeadworkers(){}
+    void killdeadworkers(){
+
+        // Navigate Workers
+        list<uint32_t>::iterator w = freeworkers.begin();
+        while(w != freeworkers.end()) {
+            if(!connected(*w)) {
+                w = freeworkers.erase(w);
+                printf("Worker %d died.\n",*w);
+            }
+            else {
+                w++;
+            }
+        }
+
+        // Navigate Assignments
+        list<Assign>::iterator a = busy.begin();
+        while(a != busy.end()) {
+            vector<uint32_t>::iterator w = a->workers.begin();
+            while(w != a->workers.end()) {
+                if(!connected(*w)) {
+                    w = a->workers.erase(w);
+                    printf("Worker %d died.\n",*w);
+                }
+                else {
+                    w++;
+                }
+            }
+            a++;
+        }
+
+    }
 };
 
 int main(int argc, char ** argv) {
 
-		int port = 7777;
+	int port = 7777;
 
-		// If you don't like our port #
-        if(argc > 1) port = atoi(argv[1]);
+	// If you don't like our port #
+    if(argc > 1) port = atoi(argv[1]);
 
-        printf("Prepare for big plays\n");
-		
-        Server served(port);
-        
-        bool keepgoing = true;
+    printf("Prepare for big plays\n");
+	
+    Server served(port);
+    
+    bool keepgoing = true;
 
-		//this running forever
-        while(keepgoing) {
-			//Read Server
-			//Assign a Job
-			//Destroy Disconnected Workers
-			//Destroy Finished Assignments
+	//this running forever
+    while(keepgoing) {
+		//Read Server
+		//Assign a Job
+		//Destroy Disconnected Workers
+		//Destroy Finished Assignments
 
-        }
-        
-        return 0;
+    }
+    
+    return 0;
 
         
 }
