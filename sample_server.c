@@ -5,7 +5,7 @@ int main(int argc, char** argv)
 	lsp_server* myserver;
 
 	if(argc != 2){
-		printf("Usage: %s <port>\n", atoi(argv[0]));
+		printf("Usage: %s <port>\n", argv[0]);
 		exit(0);
 	}else
 		myserver = lsp_server_create(atoi(argv[1]));
@@ -17,7 +17,7 @@ int main(int argc, char** argv)
 	
 	int counter = 0;
 	
-	while(counter < 5)
+	while(true)
 	{		
 		printf("Listening for packets...\n");
 		int bytes = lsp_server_read(myserver, &payload, &returned_id);

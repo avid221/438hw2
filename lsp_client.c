@@ -27,7 +27,7 @@ void lsp_set_drop_rate(double rate){drop_rate = rate;}
 
 lsp_client* lsp_client_create(const char* src, int portNum)
 {
-	char *port = (char*)malloc(4*sizeof(char));
+	char *port = (char*)malloc(5*sizeof(char));
 	sprintf(port, "%d", portNum);
 	
 	lsp_client *client = (lsp_client*)malloc(sizeof(lsp_client));
@@ -47,7 +47,7 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 	
 	/* send the connection request */
 	int i = 0;
-	uint8_t response[MAX_PACKET_SIZE];	//server response should be pretty small
+	uint8_t response[MAX_PACKET_SIZE];
 	memset(response, 0, MAX_PACKET_SIZE);
 	bool sent;
 	while(i < epoch_cnt && response_size <= 0){	//keep trying to send connection request up to epoch times
@@ -81,7 +81,7 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 void* epoch_trigger(void* client){
 	
 	void* buffer;
-	unsigned size;	
+	unsigned size;
 	
 	LSPMessage msg = LSPMESSAGE__INIT;
 	msg.connid = ((lsp_client*)client)->conn_id;
@@ -99,7 +99,7 @@ void* epoch_trigger(void* client){
 		sleep(epoch_lth*epoch_cnt - 2);
 		
 		bool sent = cli_send(((lsp_client*)client)->info, buffer, size);
-		printf("ICMP packet sent\n");
+		//printf("ICMP packet sent\n");
 	}
 }
 
@@ -119,6 +119,21 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 		return -1;
 	}
 	
+	/* create ack */
+	int ack_size;
+	uint8_t *buffer;
+	LSPMessage msg = LSPMESSAGE__INIT;
+	msg.connid = a_client->conn_id;
+	msg.seqnum = a_client->message_seq_num;
+	msg.payload.data = NULL;
+	msg.payload.len = 0;
+	ack_size = lspmessage__get_packed_size(&msg);
+	buffer = (uint8_t*)malloc(ack_size);
+	lspmessage__pack(&msg, (uint8_t*)buffer);
+	
+	//send the ack
+	while(!cli_send(a_client->info, buffer, ack_size));
+	
 	length = strlen((char*) message->payload.data);
 	int i;
 	char* temp = (char*)pld;
@@ -137,18 +152,38 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 	void* buffer;
 	unsigned size;	
 	
+	//marshal the packet
 	LSPMessage msg = LSPMESSAGE__INIT;
 	msg.connid = a_client->conn_id;
 	msg.seqnum = ++a_client->message_seq_num;
 	msg.payload.data = (uint8_t*)malloc(sizeof(uint8_t) * length);
 	msg.payload.len = length;
 	memcpy(msg.payload.data, pld, length * sizeof(uint8_t));
-	
 	size = lspmessage__get_packed_size(&msg);
 	buffer = malloc(size);
 	lspmessage__pack(&msg, (uint8_t*)buffer);
 	
-	bool sent = cli_send(a_client->info, buffer, size);
+	/* send the packet until ack received */
+	int i = 0;
+	unsigned ack_size = 0;
+	uint8_t ack[MAX_PACKET_SIZE];
+	memset(ack, 0, MAX_PACKET_SIZE);
+	bool sent;
+
+	while(i < epoch_cnt && ack_size <= 0){	//keep trying to send packet up to epoch times
+		cli_send(a_client->info, buffer, size);
+		sleep(epoch_lth);
+		ack_size = cli_recv(a_client->info, ack);	
+		if(ack_size > 0){
+			LSPMessage *message;
+			message = lspmessage__unpack(NULL, ack_size, ack);
+			if(a_client->message_seq_num == message->seqnum){
+				sent = true;
+				break;
+			}
+		}
+		i++;
+	}
 	
 	free(buffer);
 	free(msg.payload.data);

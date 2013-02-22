@@ -195,36 +195,3 @@ bool cli_close(UDPclient *a_client){
 */
 
 
-
-/*
-int check_record(UDPserver* a_srv, struct sockaddr source){
-	int i;
-	for(i = 0; i < 10; i++){
-		if(a_srv->clients[i]->clientAddr == source)
-			return i;
-		else if(a_srv->clients[i] == NULL){
-			a_srv->clients[i]->clientAddr = source;
-			return i;
-		}	
-	}
-	printf("Received connection request from client, but server is full\n");
-}
-*/
-
-/*
-unsigned generateMessage(LSPMessage *msg, int conn_id, uint8_t* pld, int msg_len, int seq_num, void* buffer){
-
-	unsigned response_size;
-	msg->connid = conn_id;
-	msg->seqnum = seq_num;
-	msg->payload.data = malloc(sizeof(uint8_t) * msg_len);
-	msg->payload.len = msg_len;
-	if(msg_len > 0) memcpy(msg->payload.data, pld, msg_len * sizeof(uint8_t));
-	response_size = lspmessage__get_packed_size(msg);
-	
-	buffer = malloc(response_size);
-	lspmessage__pack(msg, buffer);
-	
-	return response_size;
-}
-*/

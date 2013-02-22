@@ -27,7 +27,7 @@ void lsp_set_drop_rate(double rate){drop_rate = rate;}
 
 lsp_server* lsp_server_create(int portNum)
 {
-	char *port = (char*)malloc(4*sizeof(char));
+	char *port = (char*)malloc(5*sizeof(char));
 	sprintf(port, "%d", portNum);
 	
 	lsp_server *server = (lsp_server*)malloc(sizeof(lsp_server));
@@ -66,7 +66,7 @@ void* epoch_trigger(void* server){
 		sleep(epoch_lth);
 	}
 }
-	
+
 int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 {
 	memset(pld, 0, MAX_PACKET_SIZE);
@@ -88,14 +88,30 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 	for(i = 0; i < MAX_CLIENTS; i++){		//is this message from someone we know?
 		if(a_srv->clients[i].conn_id == message->connid){
 			*conn_id = message->connid;		//inform the server who has sent the message
-				
-			a_srv->clients[i].timeout_cnt = 0;	//reset timeout counter		
+			
+			a_srv->clients[i].timeout_cnt = 0;		//reset timeout counter
+			a_srv->clients[i].message_seq_num++;//update message sequence
+			
 			if(message->payload.data == NULL){	//ICMP packet to maintain the connection
 				return 0;
 			}
 			
-			length = strlen((char*)message->payload.data);	
+			/* create ack */
+			int ack_size;
+			uint8_t *buffer;
+			LSPMessage msg = LSPMESSAGE__INIT;
+			msg.connid = i;
+			msg.seqnum = a_srv->clients[i].message_seq_num;
+			msg.payload.data = NULL;
+			msg.payload.len = 0;
+			ack_size = lspmessage__get_packed_size(&msg);
+			buffer = (uint8_t*)malloc(ack_size);
+			lspmessage__pack(&msg, (uint8_t*)buffer);
 			
+			//send the ack
+			bool sent = serv_send(a_srv->info, buffer, ack_size, a_srv->clients[i].clientAddr);
+			
+			length = strlen((char*)message->payload.data);	
 			for(i = 0; i < length; i++){				//load the message into the buffer we were passed to read
 				((char*)pld)[i] = message->payload.data[i];
 			}
@@ -172,12 +188,33 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int length, uint32_t connect
 	msg.payload.data = (uint8_t*)malloc(sizeof(uint8_t) * length);
 	msg.payload.len = length;
 	memcpy(msg.payload.data, pld, length * sizeof(uint8_t));
-	
 	size = lspmessage__get_packed_size(&msg);
 	buffer = malloc(size);
 	lspmessage__pack(&msg, (uint8_t*)buffer);
 
-	bool sent = serv_send(a_srv->info, buffer, size, a_srv->clients[connection_id].clientAddr);
+	/* send the packet until ack received */
+	int i = 0;
+	unsigned ack_size = 0;
+	uint8_t ack[MAX_PACKET_SIZE];
+	memset(ack, 0, MAX_PACKET_SIZE);
+	bool sent;
+	//sockaddr source;
+	
+	while(i < epoch_cnt && ack_size <= 0){	//keep trying to send packet up to epoch times
+		serv_send(a_srv->info, buffer, size, a_srv->clients[connection_id].clientAddr);
+		sleep(epoch_lth);
+		ack_size = serv_recv(a_srv->info, ack, NULL);
+		if(ack_size > 0){
+			LSPMessage *message;
+			message = lspmessage__unpack(NULL, ack_size, ack);
+			/* make sure the ack is from the target client, not some other message */
+			if(a_srv->clients[connection_id].message_seq_num == message->seqnum && a_srv->clients[connection_id].conn_id == message->connid){
+				sent = true;
+				break;
+			}
+		}
+		i++;
+	}
 	
 	free(buffer);
 	free(msg.payload.data);

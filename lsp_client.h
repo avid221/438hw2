@@ -5,6 +5,8 @@
 typedef struct
 {
 	UDPclient* info;
+	
+	//queue<LSPMessage, void*> send_queue;
 	int message_seq_num;
 	int conn_id;	//i elected not to use the connection struct here because conn_id should not change for the client
 } lsp_client;
