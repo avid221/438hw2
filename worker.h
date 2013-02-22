@@ -5,7 +5,7 @@
 
 class Worker{
 public:
-	Worker(const char* dest, int port, uint8_t* payload, int length, int read, uint8_t* hash);
+	Worker(const char* dest, int port);
 
 private:
 	std::vector<std::string> combos(int length);
