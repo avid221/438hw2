@@ -184,7 +184,7 @@ public:
                 printf("Worker %d joined.\n", conn_id);
             }
             else if(c == 'c') {
-
+                printf(buf);
                 char * hash, * high,* low;
                 strtok(buf, " :");
                 hash = strtok(NULL, " :");
@@ -257,8 +257,10 @@ public:
         list<uint32_t>::iterator w = freeworkers.begin();
         while(w != freeworkers.end()) {
             if(!connected(*w)) {
-                w = freeworkers.erase(w);
                 printf("Worker %d died.\n",*w);
+                if (lsp_server_close(connection, *w)) 
+                    printf("good close");
+                w = freeworkers.erase(w);
             }
             else {
                 w++;
@@ -271,8 +273,10 @@ public:
             vector<uint32_t>::iterator w = a->workers.begin();
             while(w != a->workers.end()) {
                 if(!connected(*w)) {
-                    w = a->workers.erase(w);
                     printf("Worker %d died.\n",*w);
+                    if( lsp_server_close(connection,*w))
+                        printf("good close");
+                    w = a->workers.erase(w);
                 }
                 else {
                     w++;
