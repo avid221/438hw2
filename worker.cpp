@@ -12,18 +12,25 @@ Worker::Worker(const char* dest, int port){
 	lsp_client* client = lsp_client_create(dest, port);
 	lsp_client_write(client, (uint8_t*)"j", strlen((const char*)"j"));
 	
-	unsigned char* result = (unsigned char*)malloc(sizeof(unsigned char*) * 20);
-	uint8_t* payload = (uint8_t*)malloc(sizeof(uint8_t*) * 20);
-		
+	unsigned char* result = (unsigned char*)malloc(1024);
+	uint8_t* payload = (uint8_t*)malloc(1024);
+	int readval = 0;
 	while(true){
-		if(lsp_client_read(client, payload) > 0){  //retrieves target hash from server
-		
-			vector<string> possible = combos(strlen((const char*)payload));
+		cout << "starting read statement\n";
+		readval = lsp_client_read(client, payload);
+		if(readval > 0){  //retrieves target hash from server
+			cout << "received packet of size " << readval << '\n';
+			string plds = string((char*)payload);
+			string hashs = plds.substr(0,40);
+			cout << hashs << '\n';
+			vector<string> possible = combos((strlen((const char*)payload)-42)/2);
+			cout << "possible size " << possible.size() << '\n';
 			for(int i = 0; i < possible.size(); i++){
-				cout << "getting sha on" << endl;
+				//cout << "getting sha on" << endl;
 				SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)sizeof(possible[i]), result);
-
-				if(result == payload){
+				string results = string((char*)result);
+				//printf("%d\n",atoi((const char*)result[0]));
+				if(result == (unsigned char*)hashs.c_str()){
 					string raw_success = "f";
 					raw_success += " " + possible[i];
 					
@@ -40,15 +47,17 @@ Worker::Worker(const char* dest, int port){
 				}
 			}
 		}
-		else if(lsp_client_read(client, payload) == -1){
+		else if(readval == -1){
 			cout << "waiting" << endl;
 		}
+		else cout << "got " << readval << " sized packet\n";
 	}
 	free(result);
 	free(payload);
 }
 
 vector<string> Worker::combos(int length){
+	//cout << "combos len " << length << '\n';
 	vector<int> index(length, 0);
 	vector<string> passes;
 	char alpha[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 
@@ -82,9 +91,15 @@ vector<string> Worker::combos(int length){
 	}
 }
 
-int main(){
+int main(char argc, char** argv){
 	const char* dest = "127.0.0.1";
-	int port = 7779;
+	string argvs = string(argv[1]);
+	string dests = argvs.substr(0,argvs.length()-5);
+	string ports = argvs.substr(argvs.length()-4,4);
+	cout << "host =" << dests << '\n';
+	cout << "port =" << ports << '\n';
+	int port = atoi(ports.c_str());
+	dest = dests.c_str();
 	Worker worker(dest, port);
 }
 

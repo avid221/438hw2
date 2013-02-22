@@ -148,7 +148,7 @@ public:
             for(int i=0; i<job.workers.size(); i++) {
 
                 char msg[1024];
-                memset(msg, 0, 1024);
+                memset(msg, 0, 1024); //sends hash:start:end
                 char tok[] = ":";
                 strcat(msg, job.hash.c_str());
                 strcat(msg, tok);
@@ -156,6 +156,7 @@ public:
                 strcat(msg, tok);
                 strcat(msg, s[i+1].c_str());
                 unsigned int len = strlen(msg);     //unsigned baby
+                printf("%d\n",strlen((const char*)msg));
                 lsp_server_write(connection, (uint8_t *)msg, strlen((const char *)msg), job.workers[i]);
             }
             busy.push_back(job);

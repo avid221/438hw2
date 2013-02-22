@@ -25,8 +25,6 @@ void makemsg(char* hash, int length,char* msg, lsp_client* myclient)
 
 	int msglen = 26;
 	std::string sp = " ";
-	//strcat(begin,sp.c_str());
-	//strcat(end,sp.c_str());
 	std::string begin = sp;
 	std::string end = sp;
 	for (int i = 0; i < length; ++i)
@@ -36,10 +34,6 @@ void makemsg(char* hash, int length,char* msg, lsp_client* myclient)
 		msglen++;
 	}
 	std::string hashs = std::string(hash);
-	//strcpy(msg,"c ");
-	//strcat(msg,hash);
-	//strcat(msg,begin);
-	//strcat(msg,end);
 	std::string msgs = "c " + hashs + begin + end;
 	cout << "writing "<< msgs << '\n';
 	msg = (char*)msgs.c_str();
@@ -63,7 +57,7 @@ void read(lsp_client* myclient)
 	char* pwdmsg;
 	if (buf[0]=='f'){ //found case
 		pwd = std::string((char*)buf);
-		//strcat(pwdmsg,strcatchr((char*)buf,' '));
+		
 		pwdstr = "Found: " + pwd.substr(2);
 	}
 	else if (buf[0] == 'x') //not found case
