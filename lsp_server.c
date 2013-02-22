@@ -45,15 +45,18 @@ lsp_server* lsp_server_create(int portNum)
 	
 void* epoch_trigger(void* server){
 	
-	vector<Connection> client_list(((lsp_server*)server)->clients);
+	((lsp_server*)server)->clients.size();
 	int i;
 	while(true){
-		for(i=0;i < client_list.size(); i++){
+		for(i=0;i < ((lsp_server*)server)->clients.size(); i++){
 			//increment epoch count for each client
-			client_list[i].timeout_cnt += 1;
+			((lsp_server*)server)->clients[i].timeout_cnt += 1;
 			
 			//if the timeout count > epoch_cnt, disconnect them
-			if(client_list[i].timeout_cnt > epoch_cnt){
+//printf("%d\n", *client_list[i].conn_id);
+//printf("%d\n", *client_list[i].message_seq_num);
+//printf("%d\n", *client_list[i].timeout_cnt);
+			if(((lsp_server*)server)->clients[i].timeout_cnt > epoch_cnt){
 				if(lsp_server_close((lsp_server*)server, i))
 					printf("Client %d timed out\n", i);
 			}
@@ -137,7 +140,7 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 		}
 		
 		if(i == a_srv->clients.size())	a_srv->clients.push_back(Connection(src, i, 0, 0));
-		
+
 		//send the client their conn_id
 		temp_conn_id = i;
 		LSPMessage msg = LSPMESSAGE__INIT;

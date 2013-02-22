@@ -16,11 +16,11 @@ struct Connection
 		timeout_cnt = 11;
 	};
 	
-	Connection(struct sockaddr _clientAddr, int _conn_id, int _message_seq_num, unsigned timeout_cnt){
+	Connection(struct sockaddr _clientAddr, int _conn_id, int _message_seq_num, unsigned _timeout_cnt){
 		clientAddr = _clientAddr;
 		conn_id = _conn_id;
 		message_seq_num = _message_seq_num;
-		timeout_cnt = timeout_cnt;
+		timeout_cnt = _timeout_cnt;
 	};
 };
 
