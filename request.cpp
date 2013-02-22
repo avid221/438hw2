@@ -6,7 +6,7 @@
 
 lsp_client* gethostport(char* hostport,const char* host, char* port)
 {
-    std::string hp = std::string(hostport);
+    std::string hp = std::string(hostport); //parse host and port from first argument
     std::string hosts = hp.substr(0,hp.length()-5);
     std::string ports = hp.substr(hp.length()-4);
 	cout << "port = " << ports << '\n';
@@ -15,57 +15,61 @@ lsp_client* gethostport(char* hostport,const char* host, char* port)
 	
 	int portint = atoi(ports.c_str());
 
-	cout << "creating client at host " << hosts << "and port" << portint << "\n";
+	cout << "creating client at host " << hosts << ":" << portint << "\n";
 	lsp_client* myclient = lsp_client_create(host, portint); //creates local client
 	return myclient;
 }
 
-int makemsg(char* hash, int length,char* msg)
+void makemsg(char* hash, int length,char* msg, lsp_client* myclient)
 {
 
-	char begin[10];
-	char end[10];
 	int msglen = 26;
-	memset(begin,0,10);
-	memset(end,0,10);
-	std::string a = "a";
-	std::string z = "z";
 	std::string sp = " ";
-	cout << "here";
-	strcat(begin,sp.c_str());
-	strcat(end,sp.c_str());
+	//strcat(begin,sp.c_str());
+	//strcat(end,sp.c_str());
+	std::string begin = sp;
+	std::string end = sp;
 	for (int i = 0; i < length; ++i)
 	{
-		strcat(begin,a.c_str());
-		strcat(end,z.c_str());
+		begin = begin + 'a';
+		end = end + 'z';
 		msglen++;
 	}
+	std::string hashs = std::string(hash);
 	//strcpy(msg,"c ");
 	//strcat(msg,hash);
 	//strcat(msg,begin);
 	//strcat(msg,end);
-	std::string msgs = "c " + hash + begin + end;
-	cout << "message: " << msgs << '\n' << "msglen = " << msglen << '\n';
-	return msglen;
+	std::string msgs = "c " + hashs + begin + end;
+	cout << "writing "<< msgs << '\n';
+	msg = (char*)msgs.c_str();
+	lsp_client_write(myclient,(uint8_t*)msg,msgs.length()); //send HASH to be cracked
+	
 }
 
 void read(lsp_client* myclient)
 {
-		int read;
-	uint8_t buf[7];
-	while (true)
+		int read=0;
+	uint8_t buf[1024];
+	buf[0] = 0;
+	while (true) //read until a relevant message comes back
 	{
-		if (((lsp_client_read(myclient,buf) > 0) && ((buf[0]=='x') || (buf[0]=='f')))) break;
+		cout << "preparing to read\n";
+		if (lsp_client_read(myclient,buf) > 0)
+			 if ((buf[0]=='x') || (buf[0]=='f')) break;
+		cout <<"read " << buf[0] << '\n';
 	}
+	std::string pwdstr,pwd;
 	char* pwdmsg;
-	if (buf[0]=='f'){
-		strcpy(pwdmsg,"Found:");
-		strcat(pwdmsg,strchr((char*)buf,' '));
+	if (buf[0]=='f'){ //found case
+		pwd = std::string((char*)buf);
+		//strcat(pwdmsg,strcatchr((char*)buf,' '));
+		pwdstr = "Found: " + pwd.substr(2);
 	}
-	else if (buf[0] == 'x')
-		strcpy(pwdmsg,"Not Found");
-	printf(pwdmsg);
-	printf("%i",buf); //print password
+	else if (buf[0] == 'x') //not found case
+		pwdstr = "Not Found.";
+	else {} //disconnect case
+	cout << pwdstr << '\n';  //print password
 }
 
 int main(int argc, char** argv) 
@@ -78,13 +82,9 @@ int main(int argc, char** argv)
 	char* a3 = argv[3];
 	
 	lsp_client* myclient = gethostport(argv[1],host,port);
-	cout << "gothostport\n";
 	cout << a2 << '\n' << a3 << '\n';
 	int len = atoi(a3);
-	int msglen = makemsg(a2,len,msg);
-	cout << "writing\n";
-	lsp_client_write(myclient,(uint8_t*)msg,strlen(msg)); //send HASH to be cracked
-	cout << "reading\n";
+	makemsg(a2,len,msg,myclient);
 	read(myclient);
 		
 	lsp_client_close(myclient); //close client
