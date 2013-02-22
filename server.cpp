@@ -11,12 +11,6 @@ using namespace std;
 
 
 // Helper Business
-int max(int x, int y) { 
-
-	if (x > y) return x;
-	else return y;
-}
-
 int toint(string s) {
 
     int alpha = 26;
@@ -88,6 +82,8 @@ public:
 
 		low = string(l);
 		high = string(h);
+        if( high.size() > low.size()) length = high.size();
+        else length = low.size();
 		length = max(high.size(), low.size());
 		hash = string(ha);
 		result = "";
@@ -167,9 +163,12 @@ public:
         }
     }
     //*** This shit needs work***
-    bool connected(uint32_t worker) {} //how is the client handling this
+    bool connected(uint32_t worker) {
+        return false;
+
+    } //how is the client handling this
     void read(){
-        
+
         uint32_t conn_id;
         char buf[66000];
         memset(buf, 0, 66000);
@@ -185,7 +184,7 @@ public:
             }
             else if(c == 'c') {
 
-                char * hash, high, low;
+                char * hash, * high,* low;
                 strtok(buf, ":");
                 hash = strtok(NULL, ":");
                 low = strtok(NULL, ":");
@@ -286,6 +285,7 @@ public:
 
 int main(int argc, char ** argv) {
 
+    srand(1234);
 	int port = 7777;
 
 	// If you don't like our port #
@@ -299,6 +299,10 @@ int main(int argc, char ** argv) {
 
 	//this running forever
     while(keepgoing) {
+        served.read();
+        served.nextjob();
+        served.killdeadworkers();
+        served.killdoneassigns();
 		//Read Server
 		//Assign a Job
 		//Destroy Disconnected Workers
