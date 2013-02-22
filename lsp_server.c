@@ -62,7 +62,6 @@ void* epoch_trigger(void* server){
 				if(lsp_server_close((lsp_server*)server, i))
 					printf("Client %d timed out\n", i);
 			}
-			
 		}
 		sleep(epoch_lth);
 	}
@@ -70,8 +69,6 @@ void* epoch_trigger(void* server){
 
 int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 {
-
-
 	memset(pld, 0, MAX_PACKET_SIZE);
 	LSPMessage *message;
 	uint8_t buf[MAX_PACKET_SIZE];
@@ -86,6 +83,9 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 		lspmessage__free_unpacked(message, NULL);
 		return -1;
 	}
+	if(message->payload.data == NULL && message->connid != 0){	//ICMP packet to maintain the connection
+		return 0;
+	}
 	
 	bool newMsg = false;
 	int i;
@@ -93,19 +93,12 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 		if(a_srv->clients[i].conn_id == message->connid){
 			*conn_id = message->connid;		//inform the server who has sent the message
 			
-			printf("client val: %i\n", a_srv->clients[1].message_seq_num);
-			printf("mess val: %i\n", message->seqnum);
-			
 			if(message->seqnum == a_srv->clients[i].message_seq_num){
 				a_srv->clients[i].message_seq_num++;//update message sequence
 				newMsg = true;
 			}
 			
 			a_srv->clients[i].timeout_cnt = 0;		//reset timeout counter
-			
-			if(message->payload.data == NULL){	//ICMP packet to maintain the connection
-				return 0;
-			}
 			
 			/* create ack */
 			int ack_size;
