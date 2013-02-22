@@ -148,13 +148,13 @@ public:
 
             for(int i=0; i<job.workers.size(); i++) {
 
-                char msg[66000];
-                memset(msg, 0, 66000);
-                char tok[] = ":";
+                char msg[900];
+                memset(msg, 0, 900);
+                char col[] = ":";
                 strcat(msg, job.hash.c_str());
-                strcat(msg, tok);
+                strcat(msg, col);
                 strcat(msg, s[i].c_str());
-                strcat(msg, tok);
+                strcat(msg, col);
                 strcat(msg, s[i+1].c_str());
                 unsigned int len = strlen(msg);     //unsigned baby
                 lsp_server_write(connection, (uint8_t *)msg, strlen((const char *)msg), job.workers[i]);
@@ -170,8 +170,8 @@ public:
     void read(){
 
         uint32_t conn_id;
-        char buf[66000];
-        memset(buf, 0, 66000);
+        char buf[900];
+        memset(buf, 0, 900);
         int bytes = lsp_server_read(connection, buf, &conn_id);
         
         if(bytes > 0) {
@@ -186,8 +186,8 @@ public:
 
                 char * hash, * high,* low;
                 strtok(buf, ":");
-                hash = strtok(NULL, ":");
-                low = strtok(NULL, ":");
+                hash = strtok(NULL, " :");
+                low = strtok(NULL, " :");
                 high = strtok(NULL, "\n");
                 Assign new_assignment(low, high, hash);
                 new_assignment.client = conn_id;
@@ -205,9 +205,9 @@ public:
 
                 if(a != busy.end()) {
                     lsp_server_write(connection, buf, bytes, a->client);
-                    strtok(buf, ":");
+                    strtok(buf, " :");
                     char * pass = strtok(NULL, "\n");
-                    printf("Found: %s\n", pass);
+                    //printf("Found: %s\n", pass);
                     a->kill(conn_id);
                     freeworkers.push_back(conn_id);
                     a->result = string(pass);
