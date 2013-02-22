@@ -78,21 +78,25 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 		lspmessage__free_unpacked(message, NULL);
 		return -1;
 	}
-	if(message->payload.data == NULL && message->connid != 0){	//ICMP packet to maintain the connection
-		return 0;
-	}
+	
 	bool newMsg = false;
 	int i;
 	for(i = 0; i < a_srv->clients.size(); i++){		//is this message from someone we know?
+		
 		if(a_srv->clients[i].conn_id == message->connid){
 			*conn_id = message->connid;		//inform the server who has sent the message
 			
 			if(message->seqnum == a_srv->clients[i].message_seq_num){
-				a_srv->clients[i].message_seq_num++;//update message sequence
+				a_srv->clients[i].message_seq_num++;	//update message sequence
 				newMsg = true;
 			}
 			
 			a_srv->clients[i].timeout_cnt = 0;		//reset timeout counter		
+			
+			if(message->payload.data == NULL && message->connid  > 0){	//ICMP packet; no further action
+				return 0;
+			}
+			
 			/* create ack */
 			int ack_size;
 			uint8_t *buffer;
@@ -123,7 +127,8 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 	}
 
 	int temp_conn_id;
-	if(message->payload.data == NULL){	//this is a new connection request
+	if(message->payload.data == NULL)	//this is a new connection request
+	{
 
 		for(i = 1; i < a_srv->clients.size(); i++){	//check for an available client slot
 			if(a_srv->clients[i].clientAddr.sa_data == src.sa_data){	//client didn't receive the initial connection id; resend		
