@@ -53,9 +53,6 @@ void* epoch_trigger(void* server){
 			((lsp_server*)server)->clients[i].timeout_cnt += 1;
 			
 			//if the timeout count > epoch_cnt, disconnect them
-//printf("%d\n", *client_list[i].conn_id);
-//printf("%d\n", *client_list[i].message_seq_num);
-//printf("%d\n", *client_list[i].timeout_cnt);
 			if(((lsp_server*)server)->clients[i].timeout_cnt > epoch_cnt){
 				if(lsp_server_close((lsp_server*)server, i))
 					printf("Client %d timed out\n", i);
@@ -199,9 +196,8 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int length, uint32_t connect
 	int i = 0;
 	int ack_size = 0;
 	
-	strlen((char*)pld);
-	uint8_t ack[MAX_PACKET_SIZE];
-	memset(ack, 0, MAX_PACKET_SIZE);
+	uint8_t ack[length];
+	memset(ack, 0, length);
 	bool sent;
 	//sockaddr source;
 	

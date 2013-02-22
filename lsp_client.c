@@ -71,7 +71,7 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 		}
 		else if(response_size == -1)
 		{
-			printf("Server not available\n");
+			printf("Connection lost\n");
 		}
 		else if(response_size == -2)
 		{
@@ -165,7 +165,8 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 		for(i = 0; i < length; i++){
 			*(char*)temp++ = message->payload.data[i];
 		}
-	}
+	}else
+		length = 0;
 	
 	lspmessage__free_unpacked(message, NULL);
 	return length;
@@ -191,8 +192,8 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 	
 	/* send the packet until ack received */
 	int i = 0, ack_size = 0;
-	uint8_t ack[MAX_PACKET_SIZE];
-	memset(ack, 0, MAX_PACKET_SIZE);
+	uint8_t ack[length];
+	memset(ack, 0, length);
 	bool sent = false;
 
 	while(i < epoch_cnt && ack_size <= 0){	//keep trying to send packet up to epoch times

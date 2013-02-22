@@ -29,7 +29,6 @@ typedef struct
 {
 	UDPserver* info;
 	std::vector<Connection> clients;
-	//Connection clients[MAX_CLIENTS];
 } lsp_server;
 
 
