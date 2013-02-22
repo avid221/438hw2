@@ -68,7 +68,7 @@ bool serv_send(UDPserver *a_srv, void* payload, int length, struct sockaddr dest
 }
 
 
-int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source){
+int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source, int timeout){
 	//memset(payload, 0, MAX_PACKET_SIZE);
 
 	int fromlen  = sizeof *source;
@@ -78,11 +78,10 @@ int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source){
 	ufds.events = POLLIN;
 
 	unsigned int nfds = 1;
-	int timeout = 2000, poll_rslt;
+	int poll_rslt;
 	
-	if((poll_rslt = poll(&ufds, nfds, timeout) > 0)){
+	if((poll_rslt = poll(&ufds, nfds, timeout*1000) > 0)){
 		int buf_size;
-		
 		buf_size = recvfrom(a_srv->serverFD, payload, MAX_PACKET_SIZE, 0, source, ((socklen_t*)(&fromlen)));
 		if (buf_size < 0)
 		{
@@ -96,8 +95,9 @@ int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source){
 		
 			return buf_size;
 		}
-	}else 
+	}else{
 		return poll_rslt;
+	}
 }
 
 bool serv_close(UDPserver* a_srv){
@@ -110,8 +110,6 @@ UDPclient* sock_n_conn(const char* src,  const char* port)
 {
 	struct addrinfo *server, settings;
 	int serverFD, status;
-	//char newport[5], *port = &newport;
-	//itoa(portNum, port, 10);
 
 	UDPclient *clientInfo = (UDPclient*)malloc(sizeof(UDPclient));
 
@@ -146,22 +144,25 @@ UDPclient* sock_n_conn(const char* src,  const char* port)
 	return clientInfo;
 }
 
-int cli_recv(UDPclient *a_client, uint8_t* payload){
-	//memset(payload, 0, MAX_PACKET_SIZE);
+int cli_recv(UDPclient *a_client, uint8_t* payload, int timeout){
+
 	struct pollfd ufds;
 	ufds.fd = a_client->serverFD;
 	ufds.events = POLLIN;
 	unsigned int nfds = 1;
-	int timeout = 2000, poll_rslt;
+	int poll_rslt;
 
-	if((poll_rslt = poll(&ufds, nfds, timeout) > 0)){
-		
+	if((poll_rslt = poll(&ufds, nfds, timeout*1000)) > 0){
+
 		int buf_size;
 		buf_size = recv(a_client->serverFD, payload, 255, 0);
-		if (buf_size < 0)
-		{
-		     perror("Error reading from socket");
+		
+		if(ufds.revents == POLLHUP){
 			return -1;
+		}
+		else if (buf_size < 0)
+		{
+			return -2;
 		}
 		else{
 			//printf("recv()'d %d bytes\n", buf_size);
@@ -174,7 +175,6 @@ int cli_recv(UDPclient *a_client, uint8_t* payload){
 bool cli_send(UDPclient *a_client, void *payload, int length){
 	if(payload == NULL) return false;
 
-	
 	int buf_size = send(a_client->serverFD, payload, length, 0);
 
 	if(buf_size < 0){

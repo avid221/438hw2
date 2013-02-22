@@ -30,7 +30,7 @@ int serv_listen(UDPserver *a_srv, int max_clients);
 
 bool serv_send(UDPserver *a_srv, void* message, int length, struct sockaddr dest);
 
-int serv_recv(UDPserver *a_srv, void* payload, struct sockaddr* src);
+int serv_recv(UDPserver *a_srv, void* payload, struct sockaddr* src, int timeout);
 
 bool serv_close(UDPserver *a_srv);
 
@@ -45,7 +45,7 @@ UDPclient *sock_n_conn(const char* src,  const char* portNum);
 
 bool cli_send(UDPclient *a_client, void *payload, int length);
 
-int cli_recv(UDPclient *a_client, uint8_t *payload);
+int cli_recv(UDPclient *a_client, uint8_t *payload, int timeout);
 
 bool cli_close(UDPclient *a_client);
 

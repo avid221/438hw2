@@ -37,7 +37,7 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 	/* create the connection request packet */
 	LSPMessage msg = LSPMESSAGE__INIT;
 	uint8_t* buffer;
-	unsigned response_size = 0, request_size;
+	int response_size = 0, request_size;
 	msg.connid = 0;
 	msg.seqnum = 0;
 	msg.payload.data = NULL;
@@ -57,18 +57,30 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 			sent = cli_send(client->info, buffer, request_size);
 		else sent = true;
 		
-		sleep(epoch_lth);		//wait a moment
-		response_size = cli_recv(client->info, response);	
+//		sleep(epoch_lth);		//wait a moment
+		response_size = cli_recv(client->info, response, epoch_lth);
+
 		if(response_size > 0){
 			LSPMessage *message;
 			message = lspmessage__unpack(NULL, response_size, response);
 			client->conn_id = message->connid;
 			client->message_seq_num = message->seqnum;
 			printf("Received connection id %d\n", client->conn_id);
+			lspmessage__free_unpacked(message, NULL);
 			break;
 		}
+		else if(response_size == -1)
+		{
+			printf("Server not available\n");
+		}
+		else if(response_size == -2)
+		{
+			perror("Error reading from socket");
+		}
+		sleep(epoch_lth);
 		i++;
 	}
+
 	if(i == epoch_cnt){
 		printf("Failed to connect\n");
 		return NULL;
@@ -76,9 +88,8 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 	
 	pthread_t epoch_counter;				//initialize the epoch counter and run it
 	int thread_id = pthread_create(&epoch_counter, NULL, epoch_trigger, (void*)client);
-	
+
 	free(buffer);
-	//TODO: free packed messages
 	free(port);
 	return client;
 }
@@ -98,13 +109,14 @@ void* epoch_trigger(void* client){
 	buffer = malloc(size);
 	lspmessage__pack(&msg, (uint8_t*)buffer);
 	
-	int i;
 	while(true){
-		//send an empty packet just often enough to maintain the connection
-		sleep(epoch_lth*epoch_cnt - 2);
-		if((rand() % 100) > 100 * drop_rate)	//send the packet, else drop it
+		sleep(epoch_lth);
+		
+		//send an empty packet to maintain the connection
+		if((rand() % 100) > 100 * drop_rate){	//send the packet, else drop it
 			cli_send(((lsp_client*)client)->info, buffer, size);
-		//printf("ICMP packet sent\n");
+			//printf("ICMP packet sent\n");
+		}
 	}
 }
 
@@ -114,7 +126,7 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 	LSPMessage *message;
 	uint8_t buf[MAX_PACKET_SIZE];
 	
-	int length = cli_recv(a_client->info, buf);
+	int length = cli_recv(a_client->info, buf, epoch_lth);
 	
 	if(length <= 0) return -1;	//message timed out
 	
@@ -126,7 +138,7 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 	
 	bool newMsg = false;
 	if(message->seqnum == a_client->message_seq_num){
-		a_client->message_seq_num++;//update message sequence
+		a_client->message_seq_num++;	//update message sequence
 		newMsg = true;
 	}
 	
@@ -166,7 +178,7 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 	void* buffer;
 	unsigned size;	
 	
-	//marshal the packet
+	/* marshal the packet */
 	LSPMessage msg = LSPMESSAGE__INIT;
 	msg.connid = a_client->conn_id;
 	msg.seqnum = a_client->message_seq_num++;
@@ -178,8 +190,7 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 	lspmessage__pack(&msg, (uint8_t*)buffer);
 	
 	/* send the packet until ack received */
-	int i = 0;
-	unsigned ack_size = 0;
+	int i = 0, ack_size = 0;
 	uint8_t ack[MAX_PACKET_SIZE];
 	memset(ack, 0, MAX_PACKET_SIZE);
 	bool sent = false;
@@ -188,16 +199,13 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 		if((rand() % 100) > 100 * drop_rate)	//send the packet, else drop it
 			cli_send(a_client->info, buffer, size);
 		
-		sleep(epoch_lth);
-		ack_size = cli_recv(a_client->info, ack);	
+		//sleep(epoch_lth);
+		ack_size = cli_recv(a_client->info, ack, epoch_lth);	
 		if(ack_size > 0){
 			LSPMessage *message;
 			message = lspmessage__unpack(NULL, ack_size, ack);
 			sent = true;
 			break;
-			if(a_client->message_seq_num == message->seqnum){
-				
-			}
 		}
 		i++;
 	}

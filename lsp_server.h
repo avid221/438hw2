@@ -1,20 +1,35 @@
 #pragma once
 
 #include "lsp.h"
+#include <vector>
 
-typedef struct
+struct Connection
 {
 	struct sockaddr clientAddr;
 	int conn_id;
 	int message_seq_num;
 	unsigned timeout_cnt;
-} Connection;
+	
+	Connection(){
+		conn_id = -1;
+		message_seq_num = -1;
+		timeout_cnt = 11;
+	};
+	
+	Connection(struct sockaddr _clientAddr, int _conn_id, int _message_seq_num, unsigned timeout_cnt){
+		clientAddr = _clientAddr;
+		conn_id = _conn_id;
+		message_seq_num = _message_seq_num;
+		timeout_cnt = timeout_cnt;
+	};
+};
 
 
 typedef struct
 {
 	UDPserver* info;
-	Connection clients[MAX_CLIENTS];
+	std::vector<Connection> clients;
+	//Connection clients[MAX_CLIENTS];
 } lsp_server;
 
 
