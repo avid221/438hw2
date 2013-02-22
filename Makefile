@@ -7,9 +7,9 @@ LDFLAGS += -g -lprotobuf-c -L/opt/local/lib
 
 all:	$(TARGET)
 
-sample_client: lsp_client.o udp.o lspmessage.pb-c.o worker.o
+sample_client: lsp_client.o udp.o lspmessage.pb-c.o worker.o -lpthread
 
-sample_server: lsp_server.o udp.o lspmessage.pb-c.o
+sample_server: lsp_server.o udp.o lspmessage.pb-c.o -lpthread
 
 %.o:	%.c
 	$(CC) -c $(CFLAGS) $< -o $@

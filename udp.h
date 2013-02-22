@@ -7,14 +7,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <pthread.h>
 #include <strings.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/poll.h>
-#include "lspmessage.pb-c.h"
 
 #define MAX_CLIENTS 11	//we don't want conn_id = 0, and it would be risky to subtract 1 from all array indexes, so the array is size MAX_CLIENTS, but in reality we only have 10 clients
 #define MAX_PACKET_SIZE 1024
@@ -51,6 +49,4 @@ int cli_recv(UDPclient *a_client, uint8_t *payload);
 
 bool cli_close(UDPclient *a_client);
 
-//void itoa(int number, char* word);
 
-//unsigned generateMessage(LSPMessage *msg, int conn_id, void* pld, int msg_len, int seq_num, void* buffer);

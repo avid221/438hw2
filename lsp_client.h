@@ -13,3 +13,6 @@ lsp_client* lsp_client_create(const char* dest, int port);	//TODO: make port an 
 int lsp_client_read(lsp_client* a_client, uint8_t* payload);
 bool lsp_client_write(lsp_client* a_client, uint8_t* payload, int length);
 bool lsp_client_close(lsp_client* a_client);
+
+/* private functions */
+void* epoch_trigger(void* client);
