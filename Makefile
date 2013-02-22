@@ -15,6 +15,8 @@ server: lsp_server.o udp.o lspmessage.pb-c.o -lpthread
 
 worker: lsp_client.o udp.o lspmessage.pb-c.o -lpthread -lssl
 
+request: lsp_client.o udp.o lspmessage.pb-c.o -lpthread	
+
 %.o:	%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
