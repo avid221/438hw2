@@ -5,7 +5,6 @@
 #include <string>
 #include <math.h>
 #include "lsp_server.h"
-#include "lsp_client.h"
 
 using namespace std;
 
@@ -287,10 +286,10 @@ int main(int argc, char ** argv) {
 
     srand(1234);
 	int port = 7777;
-
+	printf("test\n");
 	// If you don't like our port #
     if(argc > 1) port = atoi(argv[1]);
-
+	printf("test\n");
     printf("Prepare for big plays\n");
 	
     Server served(port);
