@@ -20,6 +20,7 @@ Worker::Worker(const char* dest, int port){
 		
 			vector<string> possible = combos(strlen((const char*)payload));
 			for(int i = 0; i < possible.size(); i++){
+				cout << "getting sha on" << endl;
 				SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)sizeof(possible[i]), result);
 
 				if(result == payload){
@@ -38,6 +39,9 @@ Worker::Worker(const char* dest, int port){
 					lsp_client_write(client, (uint8_t*)"x", strlen((const char*)"x"));
 				}
 			}
+		}
+		else if(lsp_client_read(client, payload) == -1){
+			cout << "waiting" << endl;
 		}
 	}
 	free(result);
@@ -80,7 +84,7 @@ vector<string> Worker::combos(int length){
 
 int main(){
 	const char* dest = "127.0.0.1";
-	int port = 7777;
+	int port = 7779;
 	Worker worker(dest, port);
 }
 
