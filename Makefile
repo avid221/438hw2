@@ -1,6 +1,6 @@
 CC = g++
 
-TARGET = sample_client sample_server server worker request
+TARGET = sample_client sample_server server worker
 
 CFLAGS += -lssl -lcrypto -g -I/opt/local/include
 LDFLAGS += -g -lprotobuf-c -L/opt/local/lib

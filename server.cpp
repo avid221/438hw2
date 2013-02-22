@@ -147,8 +147,8 @@ public:
 
             for(int i=0; i<job.workers.size(); i++) {
 
-                char msg[900];
-                memset(msg, 0, 900);
+                char msg[1024];
+                memset(msg, 0, 1024);
                 char tok[] = ":";
                 strcat(msg, job.hash.c_str());
                 strcat(msg, tok);
@@ -163,14 +163,16 @@ public:
     }
     //*** This shit needs work***
     bool connected(uint32_t worker) {
-        return false;
+        if (connection->clients[worker].conn_id == -1) return false;
+
+        return true;
 
     } //how is the client handling this
     void read(){
 
         uint32_t conn_id;
-        char buf[900];
-        memset(buf, 0, 900);
+        char buf[1024];
+        memset(buf, 0, 1024);
         int bytes = lsp_server_read(connection, buf, &conn_id);
         
         if(bytes > 0) {
