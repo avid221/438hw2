@@ -10,9 +10,7 @@ finagle with adding words to a uin8_t*
 */
 Worker::Worker(const char* dest, int port){
 	lsp_client* client = lsp_client_create(dest, port);
-	cout << "made client" << endl;
 	lsp_client_write(client, (uint8_t*)"j", strlen((const char*)"j"));
-	cout << "wrote" << endl;
 	
 	unsigned char* result = (unsigned char*)malloc(sizeof(unsigned char*) * 20);
 	uint8_t* payload = (uint8_t*)malloc(sizeof(uint8_t*) * 20);
@@ -20,10 +18,8 @@ Worker::Worker(const char* dest, int port){
 	while(true){
 		if(lsp_client_read(client, payload) > 0){  //retrieves target hash from server
 		
-			cout << "before for" << endl;
 			vector<string> possible = combos(strlen((const char*)payload));
 			for(int i = 0; i < possible.size(); i++){
-				cout << "before sha" << endl;
 				SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)sizeof(possible[i]), result);
 
 				if(result == payload){
@@ -31,7 +27,7 @@ Worker::Worker(const char* dest, int port){
 					raw_success += " " + possible[i];
 					
 					uint8_t* success = (uint8_t*)malloc(sizeof(uint8_t*) * raw_success.length());
-					strcpy((uint8_t*)success, raw_success);
+					strcpy((char*)success, raw_success.c_str());
 					
 					lsp_client_write(client, (uint8_t*)success, strlen((const char*)success));
 					
