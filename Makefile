@@ -9,7 +9,7 @@ all:	$(TARGET)
 
 sample_client: lsp_client.o udp.o lspmessage.pb-c.o worker.o -lpthread
 
-sample_server: lsp_server.o udp.o lspmessage.pb-c.o -lpthread
+sample_server: lsp_server.o udp.o lspmessage.pb-c.o server.o -lpthread
 
 %.o:	%.c
 	$(CC) -c $(CFLAGS) $< -o $@
@@ -25,6 +25,9 @@ udp.o: udp.c
 
 lspmessage.pb-c.o: lspmessage.pb-c.c
 	$(CC) -c lspmessage.pb-c.c
+
+server.o: server.cpp
+	$(CC) -cc $(CFLAGS) server.cpp
 	
 worker.o: worker.cpp
 	$(CC) -c $(CFLAGS) worker.cpp
