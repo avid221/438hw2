@@ -3,7 +3,8 @@
 
 double epoch_lth = _EPOCH_LTH;
 int epoch_cnt = _EPOCH_CNT;
-double drop_rate = _DROP_RATE;
+double drop_rate = .6;
+//double drop_rate = _DROP_RATE;
 
 /*
  *
@@ -51,14 +52,18 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 	memset(response, 0, MAX_PACKET_SIZE);
 	bool sent;
 	while(i < epoch_cnt && response_size <= 0){	//keep trying to send connection request up to epoch times
-		sent = cli_send(client->info, buffer, request_size);
+	
+		if((rand() % 100) > 100 * drop_rate)	//send the packet, else drop it
+			sent = cli_send(client->info, buffer, request_size);
+		else sent = true;
+		
 		sleep(epoch_lth);		//wait a moment
 		response_size = cli_recv(client->info, response);	
 		if(response_size > 0){
 			LSPMessage *message;
 			message = lspmessage__unpack(NULL, response_size, response);
 			client->conn_id = message->connid;
-			client->message_seq_num = 0;
+			client->message_seq_num = message->seqnum;
 			printf("Received connection id %d\n", client->conn_id);
 			break;
 		}
@@ -97,14 +102,16 @@ void* epoch_trigger(void* client){
 	while(true){
 		//send an empty packet just often enough to maintain the connection
 		sleep(epoch_lth*epoch_cnt - 2);
-		
-		bool sent = cli_send(((lsp_client*)client)->info, buffer, size);
+		if((rand() % 100) > 100 * drop_rate)	//send the packet, else drop it
+			cli_send(((lsp_client*)client)->info, buffer, size);
 		//printf("ICMP packet sent\n");
 	}
 }
 
 int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 {
+//printf("%i\n", a_client->message_seq_num);
+
 	memset(pld, 0, MAX_PACKET_SIZE);
 	LSPMessage *message;
 	uint8_t buf[MAX_PACKET_SIZE];
@@ -119,6 +126,9 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 		return -1;
 	}
 	
+	if(message->seqnum == a_client->message_seq_num) a_client->message_seq_num++;//update message sequence
+
+	
 	/* create ack */
 	int ack_size;
 	uint8_t *buffer;
@@ -131,7 +141,7 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 	buffer = (uint8_t*)malloc(ack_size);
 	lspmessage__pack(&msg, (uint8_t*)buffer);
 	
-	//send the ack
+	/*send the ack */
 	while(!cli_send(a_client->info, buffer, ack_size));
 	
 	length = strlen((char*) message->payload.data);
@@ -155,7 +165,7 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 	//marshal the packet
 	LSPMessage msg = LSPMESSAGE__INIT;
 	msg.connid = a_client->conn_id;
-	msg.seqnum = ++a_client->message_seq_num;
+	msg.seqnum = a_client->message_seq_num;
 	msg.payload.data = (uint8_t*)malloc(sizeof(uint8_t) * length);
 	msg.payload.len = length;
 	memcpy(msg.payload.data, pld, length * sizeof(uint8_t));
@@ -168,16 +178,19 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 	unsigned ack_size = 0;
 	uint8_t ack[MAX_PACKET_SIZE];
 	memset(ack, 0, MAX_PACKET_SIZE);
-	bool sent;
+	bool sent = false;
 
 	while(i < epoch_cnt && ack_size <= 0){	//keep trying to send packet up to epoch times
-		cli_send(a_client->info, buffer, size);
+		if((rand() % 100) > 100 * drop_rate)	//send the packet, else drop it
+			cli_send(a_client->info, buffer, size);
+		
 		sleep(epoch_lth);
 		ack_size = cli_recv(a_client->info, ack);	
 		if(ack_size > 0){
 			LSPMessage *message;
 			message = lspmessage__unpack(NULL, ack_size, ack);
 			if(a_client->message_seq_num == message->seqnum){
+				a_client->message_seq_num++;
 				sent = true;
 				break;
 			}

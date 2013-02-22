@@ -10,9 +10,7 @@
 UDPserver* sock_n_bind( const char* port){
 	int serverFD, clientFD, buf_size, status, i;
 	struct addrinfo settings, *temp_addr_info, *server;
-	//char newport[5], *port = &newport;
-	//itoa(portNum, port, 10);
-	
+
 	UDPserver *servInfo = (UDPserver*)malloc(sizeof(UDPserver));
 
     memset(&settings, 0, sizeof(settings));
@@ -58,8 +56,9 @@ UDPserver* sock_n_bind( const char* port){
 
 bool serv_send(UDPserver *a_srv, void* payload, int length, struct sockaddr dest){
 	int addr_size = sizeof(dest);
-
+	
 	int buf_size = sendto(a_srv->serverFD, payload, length, 0, &dest, addr_size);
+	
 	if(buf_size < 0){
 		perror("Error writing back to socket");
 		return false;
@@ -175,6 +174,7 @@ int cli_recv(UDPclient *a_client, uint8_t* payload){
 bool cli_send(UDPclient *a_client, void *payload, int length){
 	if(payload == NULL) return false;
 
+	
 	int buf_size = send(a_client->serverFD, payload, length, 0);
 
 	if(buf_size < 0){

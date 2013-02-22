@@ -69,7 +69,7 @@ void* epoch_trigger(void* server){
 
 int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 {
-printf("%i\n", a_srv->clients[1].message_seq_num);
+//printf("%i\n", a_srv->clients[1].message_seq_num);
 
 	memset(pld, 0, MAX_PACKET_SIZE);
 	LSPMessage *message;
