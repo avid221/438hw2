@@ -3,7 +3,8 @@
 
 double epoch_lth = _EPOCH_LTH;
 int epoch_cnt = _EPOCH_CNT;
-double drop_rate = _DROP_RATE;
+double drop_rate = .05;
+//double drop_rate = _DROP_RATE;
 
 /*
  *
@@ -69,7 +70,7 @@ void* epoch_trigger(void* server){
 
 int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 {
-//printf("%i\n", a_srv->clients[1].message_seq_num);
+
 
 	memset(pld, 0, MAX_PACKET_SIZE);
 	LSPMessage *message;
@@ -86,11 +87,19 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 		return -1;
 	}
 	
+	bool newMsg = false;
 	int i;
 	for(i = 0; i < MAX_CLIENTS; i++){		//is this message from someone we know?
 		if(a_srv->clients[i].conn_id == message->connid){
 			*conn_id = message->connid;		//inform the server who has sent the message
-			if(message->seqnum == a_srv->clients[i].message_seq_num) a_srv->clients[i].message_seq_num++;//update message sequence
+			
+			printf("client val: %i\n", a_srv->clients[1].message_seq_num);
+			printf("mess val: %i\n", message->seqnum);
+			
+			if(message->seqnum == a_srv->clients[i].message_seq_num){
+				a_srv->clients[i].message_seq_num++;//update message sequence
+				newMsg = true;
+			}
 			
 			a_srv->clients[i].timeout_cnt = 0;		//reset timeout counter
 			
@@ -116,10 +125,13 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 				sent = serv_send(a_srv->info, buffer, ack_size, a_srv->clients[i].clientAddr);
 			else sent = true;
 			
-			length = strlen((char*)message->payload.data);	
-			for(i = 0; i < length; i++){				//load the message into the buffer we were passed to read
-				((char*)pld)[i] = message->payload.data[i];
+			if(newMsg){
+				length = strlen((char*)message->payload.data);	
+				for(i = 0; i < length; i++){				//load the message into the buffer we were passed to read
+					((char*)pld)[i] = message->payload.data[i];
+				}
 			}
+			
 			lspmessage__free_unpacked(message, NULL);
 			return length;
 		}
@@ -133,7 +145,7 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 			else if(strlen(a_srv->clients[i].clientAddr.sa_data) == 0){	//there's an opening in the existing client list; initialize them
 				a_srv->clients[i].clientAddr = src;
 				a_srv->clients[i].conn_id = i;
-				a_srv->clients[i].message_seq_num = 1;
+				a_srv->clients[i].message_seq_num = 0;
 				a_srv->clients[i].timeout_cnt = 0;
 				break;
 			}
@@ -190,7 +202,7 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int length, uint32_t connect
 	
 	LSPMessage msg = LSPMESSAGE__INIT;
 	msg.connid = a_srv->clients[connection_id].conn_id;
-	msg.seqnum = a_srv->clients[connection_id].message_seq_num;
+	msg.seqnum = a_srv->clients[connection_id].message_seq_num++;
 	msg.payload.data = (uint8_t*)malloc(sizeof(uint8_t) * length);
 	msg.payload.len = length;
 	memcpy(msg.payload.data, pld, length * sizeof(uint8_t));
@@ -216,8 +228,7 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int length, uint32_t connect
 			LSPMessage *message;
 			message = lspmessage__unpack(NULL, ack_size, ack);
 			/* make sure the ack is from the target client, not some other message */
-			if(a_srv->clients[connection_id].message_seq_num == message->seqnum && a_srv->clients[connection_id].conn_id == message->connid){
-				a_srv->clients[connection_id].message_seq_num++;
+			if(a_srv->clients[connection_id].conn_id == message->connid){
 				sent = true;
 				break;
 			}

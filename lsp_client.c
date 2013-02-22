@@ -3,7 +3,7 @@
 
 double epoch_lth = _EPOCH_LTH;
 int epoch_cnt = _EPOCH_CNT;
-double drop_rate = .6;
+double drop_rate = .05;
 //double drop_rate = _DROP_RATE;
 
 /*
@@ -110,8 +110,6 @@ void* epoch_trigger(void* client){
 
 int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 {
-//printf("%i\n", a_client->message_seq_num);
-
 	memset(pld, 0, MAX_PACKET_SIZE);
 	LSPMessage *message;
 	uint8_t buf[MAX_PACKET_SIZE];
@@ -126,8 +124,11 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 		return -1;
 	}
 	
-	if(message->seqnum == a_client->message_seq_num) a_client->message_seq_num++;//update message sequence
-
+	bool newMsg = false;
+	if(message->seqnum == a_client->message_seq_num){
+		a_client->message_seq_num++;//update message sequence
+		newMsg = true;
+	}
 	
 	/* create ack */
 	int ack_size;
@@ -142,13 +143,16 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 	lspmessage__pack(&msg, (uint8_t*)buffer);
 	
 	/*send the ack */
-	while(!cli_send(a_client->info, buffer, ack_size));
+	if((rand() % 100) > 100 * drop_rate)	//send the packet, else drop it
+		cli_send(a_client->info, buffer, ack_size);
 	
-	length = strlen((char*) message->payload.data);
-	int i;
-	char* temp = (char*)pld;
-	for(i = 0; i < length; i++){
-		*(char*)temp++ = message->payload.data[i];
+	if(newMsg){
+		length = strlen((char*) message->payload.data);
+		int i;
+		char* temp = (char*)pld;
+		for(i = 0; i < length; i++){
+			*(char*)temp++ = message->payload.data[i];
+		}
 	}
 	
 	lspmessage__free_unpacked(message, NULL);
@@ -165,7 +169,7 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 	//marshal the packet
 	LSPMessage msg = LSPMESSAGE__INIT;
 	msg.connid = a_client->conn_id;
-	msg.seqnum = a_client->message_seq_num;
+	msg.seqnum = a_client->message_seq_num++;
 	msg.payload.data = (uint8_t*)malloc(sizeof(uint8_t) * length);
 	msg.payload.len = length;
 	memcpy(msg.payload.data, pld, length * sizeof(uint8_t));
@@ -189,10 +193,10 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 		if(ack_size > 0){
 			LSPMessage *message;
 			message = lspmessage__unpack(NULL, ack_size, ack);
+			sent = true;
+			break;
 			if(a_client->message_seq_num == message->seqnum){
-				a_client->message_seq_num++;
-				sent = true;
-				break;
+				
 			}
 		}
 		i++;
