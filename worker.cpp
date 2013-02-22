@@ -8,27 +8,27 @@ TODO:
 finagle with adding words to a uin8_t*
 
 */
-Worker::Worker(const char* dest, int port, uint8_t* payload, int length, int read, uint8_t* hash){
+Worker::Worker(const char* dest, int port){
 	lsp_client* client = lsp_client_create(dest, port);
-	lsp_client_write(client, payload, length);
+	lsp_client_write(client, (uint8_t*)'j', 1);
+	
+	unsigned char* result = (unsigned char*)malloc(sizeof(unsigned char*) * 20);
+	uint8_t* payload = (uint8_t*)malloc(sizeof(uint8_t*) * 20);
 		
 	while(true){
-		lsp_client_read(client, payload);
-		length = sizeof(payload);
+		lsp_client_read(client, payload);  //retrieves target hash from server
 
-		vector<string> possible = combos(sizeof(payload));
+		vector<string> possible = combos(strlen((const char*)payload));
 		for(int i = 0; i < possible.size(); i++){
-			unsigned char* result = SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)sizeof(possible[i]), (unsigned char*)hash);
+			SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)sizeof(possible[i]), result);
 
 			if(result == payload){
-				uint8_t* success = (uint8_t*)"SUCCESS: ";
 				//success += possible[i];
-				lsp_client_write(client, success, length);
+				lsp_client_write(client, (uint8_t*)"f pass", strlen((const char*)"f pass"));
 				break;
 			}
 			else if(i == possible.size()-1){
-				uint8_t* failure = (uint8_t*)"FAILURE";
-				lsp_client_write(client, failure, length);
+				lsp_client_write(client, (uint8_t*)"x", strlen((const char*)"x"));
 			}
 		}
 	}
@@ -68,4 +68,9 @@ vector<string> Worker::combos(int length){
 	}
 }
 
+int main(){
+	const char* dest = "127.0.0.1";
+	int port = 7777;
+	Worker worker(dest, port);
+}
 
