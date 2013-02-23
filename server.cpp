@@ -103,23 +103,28 @@ vector<string> split(string s1, string s2, int z) {
     int length = pow(26, string(s1).length()) - 1;
     int joblength = ceil(length/z);
     string temp = s1;
-
+    string end;
+    for(int i=0; i<s1.length(); i++){
+        end += "z";
+    }
 
     s.push_back(s1);
+    if(z == 1) {
+        s.push_back(end);
+        return s;
+    }
 
     for(int a=0; a<z; a++) {
-
-        cout << "For each worker\n";
+        //cout << "For each worker\n";
         for(int i=1; i<joblength; i++) {
             temp = increment(temp, string(temp).length());
         }
         cout << "Next Range is " << temp << "\n";
         s.push_back(temp);
         if (a=z) {
-            s.push_back("zzz");
+            s.push_back(end);
             break;
         }
-
     }
     for (int i=0; i<s.size(); i++){
         cout << s[i] << "\n";
