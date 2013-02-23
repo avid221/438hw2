@@ -1,4 +1,6 @@
+#include <iostream>
 #include "lsp_server.h"
+using namespace std;
 
 int main(int argc, char** argv) 
 {
@@ -16,7 +18,7 @@ int main(int argc, char** argv)
 	int bytes_read;
 	
 	int counter = 0;
-	
+
 	while(true)
 	{		
 		printf("Listening for packets...\n");
