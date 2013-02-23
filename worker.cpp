@@ -88,7 +88,7 @@ vector<string> Worker::combos(string lower, string upper){
 			pass += alpha[index[i]];
 		}
 		
-		//cout << pass << endl;
+		cout << pass << endl;
 		passes.push_back(pass);
 		
 		for(int i = length-1;; i--){
