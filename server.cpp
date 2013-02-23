@@ -149,7 +149,10 @@ public:
 
                 char msg[1024];
                 memset(msg, 0, 1024); //sends hash:start:end
-                char tok[] = ":";
+                char c[2] = "c";
+                char tok[] = " ";
+                strcat(msg, c);
+                strcat(msg, tok);
                 strcat(msg, job.hash.c_str());
                 strcat(msg, tok);
                 strcat(msg, s[i].c_str());
@@ -185,7 +188,7 @@ public:
                 printf("Worker %d joined.\n", conn_id);
             }
             else if(c == 'c') {
-                printf(buf);
+                //printf(buf);
                 char * hash, * high,* low;
                 strtok(buf, " :");
                 hash = strtok(NULL, " :");
