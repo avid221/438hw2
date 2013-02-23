@@ -60,6 +60,7 @@ void read(lsp_client* myclient)
 	else if (buf[0] == 'x') //not found case
 		pwdstr = "Not Found.";
 	else {} //disconnect case
+		cout << pwdstr <<'\n';
 }
 
 int main(int argc, char** argv) 
