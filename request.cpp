@@ -9,24 +9,21 @@ lsp_client* gethostport(char* hostport,const char* host, char* port)
     std::string hp = std::string(hostport); //parse host and port from first argument
     std::string hosts = hp.substr(0,hp.length()-5);
     std::string ports = hp.substr(hp.length()-4);
-	cout << "port = " << ports << '\n';
-	cout << "host = " << hosts << '\n';
 	host = hosts.c_str();
 	
 	int portint = atoi(ports.c_str());
 
-	cout << "creating client at host " << hosts << ":" << portint << "\n";
 	lsp_client* myclient = lsp_client_create(host, portint); //creates local client
 	return myclient;
 }
 
-void makemsg(char* hash, int length,char* msg, lsp_client* myclient)
+void makemsg(char* hash, int length,char* msg, lsp_client* myclient) //make and send message
 {
 
-	int msglen = 26;
+	int msglen = 26; //will increment with begin and end screens
 	std::string sp = " ";
 	std::string begin = sp;
-	std::string end = sp;
+	std::string end = sp; 
 	for (int i = 0; i < length; ++i)
 	{
 		begin = begin + 'a';
@@ -35,7 +32,7 @@ void makemsg(char* hash, int length,char* msg, lsp_client* myclient)
 	}
 	std::string hashs = std::string(hash);
 	std::string msgs = "c " + hashs + begin + end;
-	cout << "writing "<< msgs << '\n';
+
 	msg = (char*)msgs.c_str();
 	lsp_client_write(myclient,(uint8_t*)msg,msgs.length()); //send HASH to be cracked
 	
@@ -48,10 +45,10 @@ void read(lsp_client* myclient)
 	buf[0] = 0;
 	while (true) //read until a relevant message comes back
 	{
-		cout << "preparing to read\n";
+
 		if (lsp_client_read(myclient,buf) > 0)
 			 if ((buf[0]=='x') || (buf[0]=='f')) break;
-		cout <<"read " << buf[0] << '\n';
+
 	}
 	std::string pwdstr,pwd;
 	char* pwdmsg;
@@ -63,7 +60,6 @@ void read(lsp_client* myclient)
 	else if (buf[0] == 'x') //not found case
 		pwdstr = "Not Found.";
 	else {} //disconnect case
-	cout << pwdstr << '\n';  //print password
 }
 
 int main(int argc, char** argv) 
@@ -72,11 +68,11 @@ int main(int argc, char** argv)
 	char* host;
 	char* port;
 	char* msg;
-	char* a2 = argv[2];
+	char* a2 = argv[2]; //read arguments
 	char* a3 = argv[3];
 	
 	lsp_client* myclient = gethostport(argv[1],host,port);
-	cout << a2 << '\n' << a3 << '\n';
+
 	int len = atoi(a3);
 	makemsg(a2,len,msg,myclient);
 	read(myclient);
