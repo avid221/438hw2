@@ -20,10 +20,16 @@ Worker::Worker(const char* dest, int port){
 		readval = lsp_client_read(client, payload);
 		if(readval > 0){  //retrieves target hash from server
 			cout << "received packet of size " << readval << '\n';
+			
 			string plds = string((char*)payload);
-			string hashs = plds.substr(0,40);
+			string hashs = plds.substr(2,40);
 			cout << hashs << '\n';
-			vector<string> possible = combos((strlen((const char*)payload)-42)/2);
+			
+			int len = (plds.length()-44)/2;
+			string lower = plds.substr(42, len);
+			string upper = plds.substr(42+len+1, len);
+			
+			vector<string> possible = combos(lower, upper);
 			cout << "possible size " << possible.size() << '\n';
 			for(int i = 0; i < possible.size(); i++){
 				//cout << "getting sha on" << endl;
@@ -56,13 +62,24 @@ Worker::Worker(const char* dest, int port){
 	free(payload);
 }
 
-vector<string> Worker::combos(int length){
+vector<string> Worker::combos(string lower, string upper){
 	//cout << "combos len " << length << '\n';
+	int length = lower.length();
 	vector<int> index(length, 0);
-	vector<string> passes;
 	char alpha[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 
 					'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 
 					'w', 'x', 'y', 'z'};
+					
+	for(int i = 0; i < length; i++){
+		for(int j = 0; j < sizeof(alpha); j++){
+			if(lower[i] == alpha[j]){
+				index[i] = j;
+				break;
+			}
+		}
+	}
+	
+	vector<string> passes;
 	
 	while(true){
 		string pass;
@@ -70,12 +87,12 @@ vector<string> Worker::combos(int length){
 		for(int i = 0; i < length; i++){
 			pass += alpha[index[i]];
 		}
-
+		
 		//cout << pass << endl;
 		passes.push_back(pass);
 		
 		for(int i = length-1;; i--){
-			if(i < 0){
+			if(passes[passes.size()-1] == upper){
 				return passes;
 			}
 			
@@ -96,10 +113,10 @@ int main(char argc, char** argv){
 	string argvs = string(argv[1]);
 	string dests = argvs.substr(0,argvs.length()-5);
 	string ports = argvs.substr(argvs.length()-4,4);
-	cout << "host =" << dests << '\n';
-	cout << "port =" << ports << '\n';
+
 	int port = atoi(ports.c_str());
 	dest = dests.c_str();
+	
 	Worker worker(dest, port);
 }
 

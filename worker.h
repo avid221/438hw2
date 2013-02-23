@@ -8,5 +8,5 @@ public:
 	Worker(const char* dest, int port);
 
 private:
-	std::vector<std::string> combos(int length);
+	std::vector<std::string> combos(std::string lower, std::string upper);
 };
