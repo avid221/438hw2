@@ -27,19 +27,31 @@ Worker::Worker(const char* dest, int port){
 			
 			int len = (plds.length()-44)/2;
 			string lower = plds.substr(42, len);
+			cout << lower << endl;
 			string upper = plds.substr(42+len+1, len);
+			cout << upper << endl;
 			
+			stringstream str;
 			vector<string> possible = combos(lower, upper);
 			cout << "possible size " << possible.size() << '\n';
 			for(int i = 0; i < possible.size(); i++){
 				//cout << "getting sha on" << endl;
 				SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)sizeof(possible[i]), result);
+				
 				string results = string((char*)result);
+				str << hex << results;
+				string realRes;
+				str >> realRes;
+				
+				str << hex << hashs;
+				string realHash;
+				str >> realHash;
 				//printf("%d\n",atoi((const char*)result[0]));
-				if(result == (unsigned char*)hashs.c_str()){
+				if(realHash == realRes){
 					string raw_success = "f";
 					raw_success += " " + possible[i];
 					
+					cout << raw_success << endl;
 					uint8_t* success = (uint8_t*)malloc(sizeof(uint8_t*) * raw_success.length());
 					strcpy((char*)success, raw_success.c_str());
 					
@@ -63,6 +75,8 @@ Worker::Worker(const char* dest, int port){
 }
 
 vector<string> Worker::combos(string lower, string upper){
+	cout << "lower=" << lower << endl;
+	cout << "upper=" << upper << endl;
 	//cout << "combos len " << length << '\n';
 	int length = lower.length();
 	vector<int> index(length, 0);
@@ -88,11 +102,14 @@ vector<string> Worker::combos(string lower, string upper){
 			pass += alpha[index[i]];
 		}
 		
-		cout << pass << endl;
 		passes.push_back(pass);
 		
+		if(passes[passes.size()-1] == upper){
+				return passes;
+		}
+		
 		for(int i = length-1;; i--){
-			if(passes[passes.size()-1] == upper){
+			if(i < 0){
 				return passes;
 			}
 			

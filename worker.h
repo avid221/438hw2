@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <openssl/sha.h>
+#include <sstream>
 
 class Worker{
 public:
