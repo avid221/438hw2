@@ -2,12 +2,7 @@
 #include "worker.h"
 
 using namespace std;
-/*
 
-TODO:
-finagle with adding words to a uin8_t*
-
-*/
 Worker::Worker(const char* dest, int port){
 	lsp_client* client = lsp_client_create(dest, port);
 	lsp_client_write(client, (uint8_t*)"j", strlen((const char*)"j"));
