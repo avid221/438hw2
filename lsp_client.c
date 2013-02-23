@@ -57,7 +57,6 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 			sent = cli_send(client->info, buffer, request_size);
 		else sent = true;
 		
-//		sleep(epoch_lth);		//wait a moment
 		response_size = cli_recv(client->info, response, epoch_lth);
 
 		if(response_size > 0){
@@ -96,12 +95,13 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 
 void* epoch_trigger(void* client){
 	
-	void* buffer;
+	void* buffer = NULL;
 	unsigned size;
+	lsp_client* newClient = (lsp_client*)client;
 	
 	LSPMessage msg = LSPMESSAGE__INIT;
-	msg.connid = ((lsp_client*)client)->conn_id;
-	msg.seqnum = ((lsp_client*)client)->message_seq_num;
+	msg.connid = newClient->conn_id;
+	msg.seqnum = newClient->message_seq_num;
 	msg.payload.data = NULL;
 	msg.payload.len = 0;
 	
@@ -111,10 +111,16 @@ void* epoch_trigger(void* client){
 	
 	while(true){
 		sleep(epoch_lth);
+
+		if(newClient->timeout_cnt++ == epoch_cnt){
+			printf("Server timed out\n");
+			lsp_client_close(newClient);
+		}
+		msg.seqnum = newClient->message_seq_num;
+		lspmessage__pack(&msg, (uint8_t*)buffer);
 		
-		//send an empty packet to maintain the connection
 		if((rand() % 100) > 100 * drop_rate){	//send the packet, else drop it
-			cli_send(((lsp_client*)client)->info, buffer, size);
+			cli_send(newClient->info, buffer, size);
 			//printf("ICMP packet sent\n");
 		}
 	}
@@ -136,7 +142,13 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 		return -1;
 	}
 	
+	a_client->timeout_cnt = 0;	//reset timeout
 	bool newMsg = false;
+
+	if(message->payload.data == NULL && message->connid > 0){	//ICMP/ack packet
+		return 0;
+	}
+	
 	if(message->seqnum == a_client->message_seq_num){
 		a_client->message_seq_num++;	//update message sequence
 		newMsg = true;
@@ -214,7 +226,7 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 	free(buffer);
 	free(msg.payload.data);
 	if(sent){
-		printf("message of length %d bytes sent\n", size);
+		//printf("message of length %d bytes sent\n", size);
 		return true;
 	}else{
 		printf("Host may not be available\n");

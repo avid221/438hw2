@@ -43,22 +43,46 @@ lsp_server* lsp_server_create(int portNum)
 	return server;
 }
 	
+	
+	
 void* epoch_trigger(void* server){
 	
-	((lsp_server*)server)->clients.size();
+	lsp_server* serverCopy = (lsp_server*)server;
 	int i;
+	void* buffer = NULL;
+	unsigned size;
+	
+	LSPMessage template_message = LSPMESSAGE__INIT;
+	template_message.connid = 1;
+	template_message.seqnum = 0;
+	template_message.payload.data = NULL;
+	template_message.payload.len = 0;
+	
+	size = lspmessage__get_packed_size(&template_message);
+	buffer = malloc(size);
+	lspmessage__pack(&template_message, (uint8_t*)buffer);
+	
 	while(true){
-		for(i=0;i < ((lsp_server*)server)->clients.size(); i++){
-			//increment epoch count for each client
-			((lsp_server*)server)->clients[i].timeout_cnt += 1;
-			
+		sleep(epoch_lth);
+		for(i = 1; i < serverCopy->clients.size(); i++){
 			//if the timeout count > epoch_cnt, disconnect them
-			if(((lsp_server*)server)->clients[i].timeout_cnt > epoch_cnt){
-				if(lsp_server_close((lsp_server*)server, i))
+			if(serverCopy->clients[i].timeout_cnt++ == epoch_cnt){
+				if(lsp_server_close(serverCopy, i))
 					printf("Client %d timed out\n", i);
 			}
+				
+			if(serverCopy->clients[i].conn_id > 0){
+	template_message.connid = i;
+	template_message.seqnum = serverCopy->clients[i].message_seq_num;
+	memset(buffer, 0, size);
+	lspmessage__pack(&template_message, (uint8_t*)buffer);
+				
+				if((rand() % 100) > 100 * drop_rate){	//send the packet, else drop it
+					serv_send(serverCopy->info, buffer, size, serverCopy->clients[i].clientAddr);
+					printf("ICMP packet sent\n");
+				}
+			}
 		}
-		sleep(epoch_lth);
 	}
 }
 
@@ -85,17 +109,16 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 		
 		if(a_srv->clients[i].conn_id == message->connid){
 			*conn_id = message->connid;		//inform the server who has sent the message
+			a_srv->clients[i].timeout_cnt = 0;		//reset timeout counter	
 			
+			if(message->payload.data == NULL){	//ICMP/ack packet; no further action
+				return 0;
+			}
 			if(message->seqnum == a_srv->clients[i].message_seq_num){
 				a_srv->clients[i].message_seq_num++;	//update message sequence
 				newMsg = true;
-			}
-			
-			a_srv->clients[i].timeout_cnt = 0;		//reset timeout counter		
-			
-			if(message->payload.data == NULL && message->connid  > 0){	//ICMP packet; no further action
+			}else 
 				return 0;
-			}
 			
 			/* create ack */
 			int ack_size;
@@ -109,12 +132,13 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 			buffer = (uint8_t*)malloc(ack_size);
 			lspmessage__pack(&msg, (uint8_t*)buffer);
 			
-			bool sent;
 			//send the ack
+			bool sent;
 			if((rand() % 100) > 100 * drop_rate)	//send the packet, else drop it
 				sent = serv_send(a_srv->info, buffer, ack_size, a_srv->clients[i].clientAddr);
 			else sent = true;
 			
+			/* if this message is new, return it, otherwise the message was just a resent or ack packet */
 			if(newMsg){
 				length = strlen((char*)message->payload.data);	
 				for(i = 0; i < length; i++){				//load the message into the buffer we were passed to read
@@ -129,7 +153,6 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 	int temp_conn_id;
 	if(message->payload.data == NULL)	//this is a new connection request
 	{
-
 		for(i = 1; i < a_srv->clients.size(); i++){	//check for an available client slot
 			if(a_srv->clients[i].clientAddr.sa_data == src.sa_data){	//client didn't receive the initial connection id; resend		
 				break;
@@ -138,10 +161,11 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 				a_srv->clients[i].conn_id = i;
 				a_srv->clients[i].message_seq_num = 0;
 				a_srv->clients[i].timeout_cnt = 0;
+				break;
 			}
 		}
 		
-		if(i == a_srv->clients.size())	a_srv->clients.push_back(Connection(src, i, 0, 0));
+		if(i == a_srv->clients.size())	a_srv->clients.push_back(Connection(src, i, 0, 0));	//vector full, add a new one
 
 		//send the client their conn_id
 		temp_conn_id = i;
@@ -227,7 +251,7 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int length, uint32_t connect
 	free(buffer);
 	free(msg.payload.data);
 	if(sent){
-		printf("message of length %d bytes sent\n", size);
+		//printf("message of length %d bytes sent\n", size);
 		return true;
 	}else{
 		printf("Host may not be available\n");
@@ -244,10 +268,12 @@ bool lsp_server_close(lsp_server* a_srv, uint32_t connection_id)
 		return false;
 	}
 	
-	memset(&a_srv->clients[connection_id].clientAddr, 0, sizeof(struct sockaddr));
+//	memset(&a_srv->clients[connection_id].clientAddr, 0, sizeof(struct sockaddr));
 	a_srv->clients[connection_id].conn_id = -1;
 	a_srv->clients[connection_id].message_seq_num = -1;
 	a_srv->clients[connection_id].timeout_cnt = a_srv->clients.size()+1;
+	//a_srv->clients[connection_id].payload.data = NULL;
 
+	
 	return true;
 }
