@@ -18,7 +18,7 @@ UDPserver* sock_n_bind( const char* port){
     settings.ai_socktype = SOCK_DGRAM;
     settings.ai_flags = AI_PASSIVE;
     if ((status = getaddrinfo(NULL, port, &settings, &server)) != 0){
-        perror("Failed to get address info");
+        //perror("Failed to get address info");
         return NULL;
     }
     
@@ -41,10 +41,10 @@ UDPserver* sock_n_bind( const char* port){
     }
 	
 	if (temp_addr_info == NULL) {	//port didn't get bound
-		printf("problem with bind, choose a different port\n");
+		//prinf("problem with bind, choose a different port\n");
 		return NULL;
     }
-	printf("server initialized with port %s\n", port);
+	//prinf("server initialized with port %s\n", port);
 	
 	freeaddrinfo(server);
 	
@@ -60,7 +60,7 @@ bool serv_send(UDPserver *a_srv, void* payload, int length, struct sockaddr dest
 	int buf_size = sendto(a_srv->serverFD, payload, length, 0, &dest, addr_size);
 	
 	if(buf_size < 0){
-		perror("Error writing back to socket");
+		//perror("Error writing back to socket");
 		return false;
 	}
 	
@@ -85,13 +85,13 @@ int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source, int time
 		buf_size = recvfrom(a_srv->serverFD, payload, MAX_PACKET_SIZE, 0, source, ((socklen_t*)(&fromlen)));
 		if (buf_size < 0)
 		{
-		     perror("Error reading from socket");
+		     //perror("Error reading from socket");
 			return -1;
 		}
 		else{
 			char ipstr[INET_ADDRSTRLEN];
-			//printf("recv()'d %d bytes ", buf_size);
-			//printf("from IP address %s\n", inet_ntop(AF_INET, source->sa_data, ipstr, sizeof ipstr));
+			////prinf("recv()'d %d bytes ", buf_size);
+			////prinf("from IP address %s\n", inet_ntop(AF_INET, source->sa_data, ipstr, sizeof ipstr));
 		
 			return buf_size;
 		}
@@ -118,19 +118,19 @@ UDPclient* sock_n_conn(const char* src,  const char* port)
     settings.ai_socktype = SOCK_DGRAM;
 
 	if(status = (getaddrinfo(src, port, &settings, &server)) != 0){
-		perror("Error getting address info");
+		//perror("Error getting address info");
 		return NULL;
 	}
 	
 	struct addrinfo *temp;
 	for(temp = server; temp != NULL; temp = temp->ai_next) {
         if((serverFD = socket(temp->ai_family, temp->ai_socktype, temp->ai_protocol)) < 0){
-			perror("Error creating socket");
+			//perror("Error creating socket");
 			continue;
 		}
 		if(connect(serverFD,  temp->ai_addr, temp->ai_addrlen) < 0){
 			close(serverFD);
-			perror("Error connecting to server");
+			//perror("Error connecting to server");
 			continue;
 		}
         break;
@@ -139,7 +139,7 @@ UDPclient* sock_n_conn(const char* src,  const char* port)
 	clientInfo->serverFD = serverFD;
 	clientInfo->server = server;
 	
-	printf("Connection request sent on socket %d\n", serverFD);
+	//prinf("Connection request sent on socket %d\n", serverFD);
 	
 	return clientInfo;
 }
@@ -165,7 +165,7 @@ int cli_recv(UDPclient *a_client, uint8_t* payload, int timeout){
 			return -2;
 		}
 		else{
-			//printf("recv()'d %d bytes\n", buf_size);
+			////prinf("recv()'d %d bytes\n", buf_size);
 			return buf_size;
 		}
 	}else 
@@ -178,7 +178,7 @@ bool cli_send(UDPclient *a_client, void *payload, int length){
 	int buf_size = send(a_client->serverFD, payload, length, 0);
 
 	if(buf_size < 0){
-		perror("Error writing to socket");
+		//perror("Error writing to socket");
 		return false;
 	}else
 		return true;

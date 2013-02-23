@@ -29,7 +29,7 @@ void lsp_set_drop_rate(double rate){drop_rate = rate;}
 lsp_client* lsp_client_create(const char* src, int portNum)
 {
 	char *port = (char*)malloc(5*sizeof(char));
-	sprintf(port, "%d", portNum);
+	//prinf(port, "%d", portNum);
 	
 	lsp_client *client = (lsp_client*)malloc(sizeof(lsp_client));
 	client->info = sock_n_conn(src, port);
@@ -57,6 +57,7 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 			sent = cli_send(client->info, buffer, request_size);
 		else sent = true;
 		
+//		sleep(epoch_lth);		//wait a moment
 		response_size = cli_recv(client->info, response, epoch_lth);
 
 		if(response_size > 0){
@@ -64,13 +65,13 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 			message = lspmessage__unpack(NULL, response_size, response);
 			client->conn_id = message->connid;
 			client->message_seq_num = message->seqnum;
-			printf("Received connection id %d\n", client->conn_id);
+			//prinf("Received connection id %d\n", client->conn_id);
 			lspmessage__free_unpacked(message, NULL);
 			break;
 		}
 		else if(response_size == -1)
 		{
-			printf("Connection lost\n");
+			//prinf("Connection lost\n");
 		}
 		else if(response_size == -2)
 		{
@@ -81,7 +82,7 @@ lsp_client* lsp_client_create(const char* src, int portNum)
 	}
 
 	if(i == epoch_cnt){
-		printf("Failed to connect\n");
+		//prinf("Failed to connect\n");
 		return NULL;
 	}
 	
@@ -113,7 +114,7 @@ void* epoch_trigger(void* client){
 		sleep(epoch_lth);
 
 		if(newClient->timeout_cnt++ == epoch_cnt){
-			printf("Server timed out\n");
+			//prinf("Server timed out\n");
 			lsp_client_close(newClient);
 		}
 		msg.seqnum = newClient->message_seq_num;
@@ -121,7 +122,7 @@ void* epoch_trigger(void* client){
 		
 		if((rand() % 100) > 100 * drop_rate){	//send the packet, else drop it
 			cli_send(newClient->info, buffer, size);
-			//printf("ICMP packet sent\n");
+			////prinf("ICMP packet sent\n");
 		}
 	}
 }
@@ -138,7 +139,7 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 	
 	message = lspmessage__unpack(NULL, length, buf);
 	if(message == NULL){
-		printf("Error unpacking message\n");
+		//prinf("Error unpacking message\n");
 		return -1;
 	}
 	
@@ -180,6 +181,7 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 	}else
 		length = 0;
 	
+	free(buffer);
 	lspmessage__free_unpacked(message, NULL);
 	return length;
 }
@@ -226,10 +228,10 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 	free(buffer);
 	free(msg.payload.data);
 	if(sent){
-		//printf("message of length %d bytes sent\n", size);
+		////prinf("message of length %d bytes sent\n", size);
 		return true;
 	}else{
-		printf("Host may not be available\n");
+		//prinf("Host may not be available\n");
 		return false;
 	}
 }
@@ -239,7 +241,7 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 bool lsp_client_close(lsp_client* a_client)
 {	
 	if(cli_close(a_client->info))
-		printf("Connection closed\n");
+		//prinf("Connection closed\n");
 	free(a_client);
 	return true;
 }

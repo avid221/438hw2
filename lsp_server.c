@@ -29,7 +29,7 @@ void lsp_set_drop_rate(double rate){drop_rate = rate;}
 lsp_server* lsp_server_create(int portNum)
 {
 	char *port = (char*)malloc(5*sizeof(char));
-	sprintf(port, "%d", portNum);
+	s//prinf(port, "%d", portNum);
 	
 	lsp_server *server = (lsp_server*)malloc(sizeof(lsp_server));
 	server->info = sock_n_bind(port);	
@@ -68,7 +68,7 @@ void* epoch_trigger(void* server){
 			//if the timeout count > epoch_cnt, disconnect them
 			if(serverCopy->clients[i].timeout_cnt++ == epoch_cnt){
 				if(lsp_server_close(serverCopy, i))
-					printf("Client %d timed out\n", i);
+					//prinf("Client %d timed out\n", i);
 			}
 				
 			if(serverCopy->clients[i].conn_id > 0){
@@ -79,7 +79,7 @@ void* epoch_trigger(void* server){
 				
 				if((rand() % 100) > 100 * drop_rate){	//send the packet, else drop it
 					serv_send(serverCopy->info, buffer, size, serverCopy->clients[i].clientAddr);
-					printf("ICMP packet sent\n");
+					//prinf("ICMP packet sent\n");
 				}
 			}
 		}
@@ -98,7 +98,7 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 	
 	message = lspmessage__unpack(NULL, length, buf);
 	if(message == NULL){
-		printf("Error unpacking message\n");
+		//prinf("Error unpacking message\n");
 		lspmessage__free_unpacked(message, NULL);
 		return -1;
 	}
@@ -145,6 +145,7 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 					((char*)pld)[i] = message->payload.data[i];
 				}
 			}
+			free(buffer);
 			lspmessage__free_unpacked(message, NULL);
 			return length;
 		}
@@ -187,7 +188,7 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 			serv_send(a_srv->info, buffer, response_size, a_srv->clients[temp_conn_id].clientAddr);
 		
 		free(buffer);
-		printf("Connection request received, assigned connection id %d\n", temp_conn_id);
+		//prinf("Connection request received, assigned connection id %d\n", temp_conn_id);
 
 		*conn_id = temp_conn_id;	//inform the server what conn_id it has just assigned
 		lspmessage__free_unpacked(message, NULL);
@@ -204,7 +205,7 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 bool lsp_server_write(lsp_server* a_srv, void* pld, int length, uint32_t connection_id)
 {	
 	if(a_srv->clients[connection_id].conn_id != connection_id){
-		printf("Invalid connection id\n");
+		//prinf("Invalid connection id\n");
 		return false;
 	}
 	
@@ -251,10 +252,10 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int length, uint32_t connect
 	free(buffer);
 	free(msg.payload.data);
 	if(sent){
-		//printf("message of length %d bytes sent\n", size);
+		////prinf("message of length %d bytes sent\n", size);
 		return true;
 	}else{
-		printf("Host may not be available\n");
+		//prinf("Host may not be available\n");
 		return false;
 	}
 }
@@ -264,7 +265,7 @@ bool lsp_server_write(lsp_server* a_srv, void* pld, int length, uint32_t connect
 bool lsp_server_close(lsp_server* a_srv, uint32_t connection_id)
 {
 	if(a_srv->clients[connection_id].conn_id != connection_id){
-	//	printf("Invalid connection id\n");
+	//	//prinf("Invalid connection id\n");
 		return false;
 	}
 	
