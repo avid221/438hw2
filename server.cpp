@@ -5,11 +5,59 @@
 #include <string>
 #include <math.h>
 #include "lsp_server.h"
+#include <iostream>
 
 using namespace std;
 
 
 // Helper Business
+string increment(string input, int l){
+    input[l -1]++;
+    int i;
+    for(i = l-1; i >= 0; i--){
+        if (input[i]== '{') {
+            input[i] = 'a';
+            if(i-1 >= 0) {
+                input[i-1]++;
+            }
+        }
+    }
+    return input;
+
+}
+
+unsigned long long convert(string str)
+{
+    unsigned long long result = 0;
+    for (int i = 0;i<str.length();i++)
+        result+= (str[i] - 'A' + 1) + i*26;
+    return result;
+}
+
+int frombase(string s) {
+    int temp = 0;
+    if(s != "" && s.length() > 0) {
+        temp = s[0] - 'A';
+        for (int i=1; i<s.length(); i++) {
+            temp *= 26;
+            temp += s[i] - 'A';
+        }
+    }
+    return temp;
+}
+string tobase(int n) {
+    int number = abs(number);
+    string converted = "";
+
+    while (number > 0) {
+        int rem = number%26;
+        converted = (char)(rem + 'A') + converted;
+        number = (number - rem) / 26;
+
+    }
+    return converted;
+
+}
 int toint(string s) {
 
     int alpha = 26;
@@ -42,28 +90,55 @@ string tostring(int i) {
     }
 
     s = tostring(i/alpha);
+    cout << "Current letter is " << s << "\n";
     s.push_back(alphabet[i%alpha]);
 
     return s;
 }
 
-vector<string> split(const char* s1, const char* s2, int z) {
+vector<string> split(string s1, string s2, int z) {
 
     vector<string> s;
 
+    int length = pow(26, string(s1).length()) - 1;
+    int joblength = ceil(length/z);
+    string temp = s1;
+
+
+    s.push_back(s1);
+
+    for(int a=0; a<z; a++) {
+
+        cout << "For each worker\n";
+        for(int i=1; i<joblength; i++) {
+            temp = increment(temp, string(temp).length());
+        }
+        cout << "Next Range is " << temp << "\n";
+        s.push_back(temp);
+        if (a=z) {
+            s.push_back("zzz");
+            break;
+        }
+
+    }
+    for (int i=0; i<s.size(); i++){
+        cout << s[i] << "\n";
+    }
+
+    /*
     int a = toint( string(s1) );
     int b = toint( string(s2) );
     int temp = (a + b) / z;
 
     s.push_back(string(s1));
 
-    for(int i=1; i<z; i++) {
+    for(int i=0; i<z; i++) {
 
         s.push_back( tostring(temp*i) );
     }
 
     s.push_back(string(s2));
-
+    */
     return s;
 }
 
@@ -143,7 +218,7 @@ public:
                 it = freeworkers.erase(it);
             }
 
-            vector<string> s = split(job.high.c_str(), job.low.c_str(), job.workers.size());
+            vector<string> s = split(job.low, job.high, job.workers.size());
 
             for(int i=0; i<job.workers.size(); i++) {
 
@@ -159,7 +234,9 @@ public:
                 strcat(msg, tok);
                 strcat(msg, s[i+1].c_str());
                 unsigned int len = strlen(msg);     //unsigned baby
-                printf("%d\n",strlen((const char*)msg));
+                //printf("%d\n",strlen((const char*)msg));
+                string msgs = string( (char *)msg);
+                cout << msgs;
                 lsp_server_write(connection, (uint8_t *)msg, strlen((const char *)msg), job.workers[i]);
             }
             busy.push_back(job);
@@ -229,7 +306,8 @@ public:
 
                 if(a != busy.end()) {
                     a->kill(conn_id);
-                    printf("Not Found");
+                    printf("Not Found\n");
+                    lsp_server_write(connection, buf, bytes, a->client);
                 }
             }
         }
@@ -261,9 +339,9 @@ public:
         list<uint32_t>::iterator w = freeworkers.begin();
         while(w != freeworkers.end()) {
             if(!connected(*w)) {
-                printf("Worker %d died.\n",*w);
-                if (lsp_server_close(connection, *w)) 
-                    printf("good close");
+                //printf("Worker %d died.\n",*w);
+                printf("Disonnected");
+                lsp_server_close(connection, *w);
                 w = freeworkers.erase(w);
             }
             else {
@@ -277,9 +355,9 @@ public:
             vector<uint32_t>::iterator w = a->workers.begin();
             while(w != a->workers.end()) {
                 if(!connected(*w)) {
-                    printf("Worker %d died.\n",*w);
-                    if( lsp_server_close(connection,*w))
-                        printf("good close");
+                    //printf("Worker %d died.\n",*w);
+                    printf("Disconnected");
+                    lsp_server_close(connection,*w);
                     w = a->workers.erase(w);
                 }
                 else {
@@ -293,7 +371,6 @@ public:
 };
 
 int main(int argc, char ** argv) {
-
     srand(1234);
 	int port = 7777;
 
@@ -318,7 +395,6 @@ int main(int argc, char ** argv) {
 		//Destroy Finished Assignments
 
     }
-    
     return 0;
 
         
