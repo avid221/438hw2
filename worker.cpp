@@ -17,13 +17,14 @@ Worker::Worker(const char* dest, int port){
 			cout << "received packet of size " << readval << '\n';
 			
 			string plds = string((char*)payload);
+			cout << "plds=" << plds << endl;
 			string hashs = plds.substr(2,40);
 			cout << hashs << '\n';
 			
 			int len = (plds.length()-44)/2;
-			string lower = plds.substr(42, len);
+			string lower = plds.substr(43, len);
 			cout << lower << endl;
-			string upper = plds.substr(42+len+1, len);
+			string upper = plds.substr(43+len+1, len);
 			cout << upper << endl;
 			
 			stringstream str;
@@ -31,18 +32,26 @@ Worker::Worker(const char* dest, int port){
 			cout << "possible size " << possible.size() << '\n';
 			for(int i = 0; i < possible.size(); i++){
 				//cout << "getting sha on" << endl;
-				SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)sizeof(possible[i]), result);
+				//SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)sizeof(possible[i]), result);
+				printf("%s\n", (const unsigned char*)possible[i].c_str());
+				SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)len, result);
+				char* real;
+				for(int j = 0; j < 20; j++){
+					sprintf(real+j*2, "%02x", result[j]);
+				}
+				string reals = string(real);
+				cout << reals << endl;
 				
-				string results = string((char*)result);
-				str << hex << results;
-				string realRes;
-				str >> realRes;
+				/*static const char alph[] = "0123456789abcdef";
+				char hash_string[40];
+				for(int j = 20; j > 0; --j){
+					hash_string[2*j - 1] = alph[result[20 - j] / 16];
+					hash_string[2*j - 2] = alph[result[20 - j] % 16];
+				}
+				cout << possible[i] << ": " << hash_string << endl;*/
 				
-				str << hex << hashs;
-				string realHash;
-				str >> realHash;
 				//printf("%d\n",atoi((const char*)result[0]));
-				if(realHash == realRes){
+				if(hashs == reals){
 					string raw_success = "f";
 					raw_success += " " + possible[i];
 					
@@ -122,6 +131,7 @@ vector<string> Worker::combos(string lower, string upper){
 
 int main(char argc, char** argv){
 	const char* dest = "127.0.0.1";
+	srand(12345);
 	string argvs = string(argv[1]);
 	string dests = argvs.substr(0,argvs.length()-5);
 	string ports = argvs.substr(argvs.length()-4,4);
