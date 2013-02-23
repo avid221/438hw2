@@ -12,7 +12,6 @@ UDPserver* sock_n_bind( const char* port){
 	struct addrinfo settings, *temp_addr_info, *server;
 
 	UDPserver *servInfo = (UDPserver*)malloc(sizeof(UDPserver));
-
     memset(&settings, 0, sizeof(settings));
     settings.ai_family = AF_INET;
     settings.ai_socktype = SOCK_DGRAM;
@@ -21,7 +20,7 @@ UDPserver* sock_n_bind( const char* port){
         //perror("Failed to get address info");
         return NULL;
     }
-    
+
 	int yes = 1;
 	
     for(temp_addr_info = server; temp_addr_info != NULL; temp_addr_info = temp_addr_info->ai_next) {
@@ -39,12 +38,12 @@ UDPserver* sock_n_bind( const char* port){
         }
         break;
     }
-	
+
 	if (temp_addr_info == NULL) {	//port didn't get bound
-		//prinf("problem with bind, choose a different port\n");
+		//printf("problem with bind, choose a different port\n");
 		return NULL;
     }
-	//prinf("server initialized with port %s\n", port);
+	//printf("server initialized with port %s\n", port);
 	
 	freeaddrinfo(server);
 	
@@ -90,8 +89,8 @@ int serv_recv(UDPserver *a_srv, void *payload, struct sockaddr* source, int time
 		}
 		else{
 			char ipstr[INET_ADDRSTRLEN];
-			////prinf("recv()'d %d bytes ", buf_size);
-			////prinf("from IP address %s\n", inet_ntop(AF_INET, source->sa_data, ipstr, sizeof ipstr));
+			////printf("recv()'d %d bytes ", buf_size);
+			////printf("from IP address %s\n", inet_ntop(AF_INET, source->sa_data, ipstr, sizeof ipstr));
 		
 			return buf_size;
 		}
@@ -139,7 +138,7 @@ UDPclient* sock_n_conn(const char* src,  const char* port)
 	clientInfo->serverFD = serverFD;
 	clientInfo->server = server;
 	
-	//prinf("Connection request sent on socket %d\n", serverFD);
+	//printf("Connection request sent on socket %d\n", serverFD);
 	
 	return clientInfo;
 }
@@ -165,7 +164,7 @@ int cli_recv(UDPclient *a_client, uint8_t* payload, int timeout){
 			return -2;
 		}
 		else{
-			////prinf("recv()'d %d bytes\n", buf_size);
+			////printf("recv()'d %d bytes\n", buf_size);
 			return buf_size;
 		}
 	}else 
