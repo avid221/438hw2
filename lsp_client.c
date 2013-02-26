@@ -172,7 +172,7 @@ int lsp_client_read(lsp_client* a_client, uint8_t* pld)
 		cli_send(a_client->info, buffer, ack_size);
 	
 	if(newMsg){
-		length = strlen((char*) message->payload.data);
+		length = message->payload.len;
 		int i;
 		char* temp = (char*)pld;
 		for(i = 0; i < length; i++){
@@ -222,6 +222,7 @@ bool lsp_client_write(lsp_client* a_client, uint8_t* pld, int length)
 			sent = true;
 			break;
 		}
+printf("%d\n", msg.payload.len);
 		i++;
 	}
 	

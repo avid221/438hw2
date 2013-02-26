@@ -1,15 +1,11 @@
 CC = g++
 
-TARGET = sample_client sample_server server worker request
+TARGET = server worker request
 
 CFLAGS += -lssl -lcrypto -g -I/opt/local/include
 LDFLAGS += -g -lprotobuf-c -L/opt/local/lib
 
 all:	$(TARGET)
-
-sample_client: lsp_client.o udp.o lspmessage.pb-c.o -lpthread
-
-sample_server: lsp_server.o udp.o lspmessage.pb-c.o -lpthread
 
 server: lsp_server.o udp.o lspmessage.pb-c.o -lpthread
 

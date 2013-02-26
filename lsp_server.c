@@ -101,7 +101,7 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 		lspmessage__free_unpacked(message, NULL);
 		return -1;
 	}
-	
+
 	bool newMsg = false;
 	int i;
 	for(i = 0; i < a_srv->clients.size(); i++){		//is this message from someone we know?
@@ -139,7 +139,7 @@ int lsp_server_read(lsp_server* a_srv, void* pld, uint32_t* conn_id)
 			
 			/* if this message is new, return it, otherwise the message was just a resent or ack packet */
 			if(newMsg){
-				length = strlen((char*)message->payload.data);	
+				length = message->payload.len;	
 				for(i = 0; i < length; i++){				//load the message into the buffer we were passed to read
 					((char*)pld)[i] = message->payload.data[i];
 				}
