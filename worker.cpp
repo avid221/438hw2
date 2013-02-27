@@ -4,16 +4,17 @@
 using namespace std;
 
 Worker::Worker(const char* dest, int port){
-	lsp_client* client = lsp_client_create(dest, port);
-	lsp_client_write(client, (uint8_t*)"j", strlen((const char*)"j"));
-	
+	lsp_client* client = lsp_client_create(dest, port);  //Create client
+	if(lsp_client_write(client, (uint8_t*)"j", strlen((const char*)"j"))){  //request a join from client
+		cout << "connected" << endl;
+	}
+	else{cout << "no response from server" << endl;}
 	unsigned char* result = (unsigned char*)malloc(1024);
 	uint8_t* payload = (uint8_t*)malloc(1024);
 	int readval = 0;
 	while(true){
-		readval = lsp_client_read(client, payload);
+		readval = lsp_client_read(client, payload); //wait to get a request from the server
 		if(readval > 0){  //retrieves target hash from server
-			
 			string plds = string((char*)payload);
 			string hashs = plds.substr(2,40);
 			
@@ -23,7 +24,11 @@ Worker::Worker(const char* dest, int port){
 			
 			stringstream str;
 			vector<string> possible = combos(lower, upper);
-			for(int i = 0; i < possible.size(); i++){
+			/*
+			This loop cycles through all possible combinations and if it finds the correct hash
+			it send the success message to the server in the form of "f pass" where 'pass' is the cracked password
+			*/
+			for(int i = 0; i < possible.size(); i++){ 
 				SHA1((const unsigned char*)possible[i].c_str(), (unsigned long)len, result);
 				char* real;
 				for(int j = 0; j < 20; j++){
@@ -35,15 +40,22 @@ Worker::Worker(const char* dest, int port){
 					raw_success += " " + possible[i];
 					
 					uint8_t* success = (uint8_t*)malloc(sizeof(uint8_t*) * raw_success.length());
-					strcpy((char*)success, raw_success.c_str());
+					strcpy((char*)success, raw_success.c_str());\
+					printf("%s\n", success);
 					
-					lsp_client_write(client, (uint8_t*)success, strlen((const char*)success));
+					if(lsp_client_write(client, (uint8_t*)success, strlen((const char*)success))){
+						cout << "success sent" << endl;
+					}
+					else{cout << "sending failed" << endl;}
 					
 					free(success);
 					break;
 				}
 				else if(i == possible.size()-1){
-					lsp_client_write(client, (uint8_t*)"x", strlen((const char*)"x"));
+					if(lsp_client_write(client, (uint8_t*)"x", strlen((const char*)"x"))){
+						cout << "Notice of failure sent" << endl;
+					}
+					else{cout << "Notice of failure failed to send" << endl;}
 				}
 			}
 		}
@@ -52,6 +64,11 @@ Worker::Worker(const char* dest, int port){
 	free(payload);
 }
 
+/*
+This is the part of the worker that actually makes the password cracking possible.
+It cycles through the given range of letters finding every combination within that range.
+It then returns a vector of these possibilties.
+*/
 vector<string> Worker::combos(string lower, string upper){
 	int length = lower.length();
 	vector<int> index(length, 0);
@@ -100,6 +117,12 @@ vector<string> Worker::combos(string lower, string upper){
 	}
 }
 
+/*
+makes the worker run upon creation
+
+TO RUN:
+./worker host:port	(i.e. ./worker 127.0.0.1:7777)
+*/
 int main(char argc, char** argv){
 	const char* dest = "127.0.0.1";
 	srand(12345);
