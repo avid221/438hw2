@@ -10,7 +10,8 @@
 using namespace std;
 
 
-// Helper Business
+// Navigate through the range of passwords
+// e.x. One run through increment takes aaa to aab
 string increment(string input, int l){
     input[l -1]++;
     int i;
@@ -26,76 +27,11 @@ string increment(string input, int l){
 
 }
 
-unsigned long long convert(string str)
-{
-    unsigned long long result = 0;
-    for (int i = 0;i<str.length();i++)
-        result+= (str[i] - 'A' + 1) + i*26;
-    return result;
-}
-
-int frombase(string s) {
-    int temp = 0;
-    if(s != "" && s.length() > 0) {
-        temp = s[0] - 'A';
-        for (int i=1; i<s.length(); i++) {
-            temp *= 26;
-            temp += s[i] - 'A';
-        }
-    }
-    return temp;
-}
-string tobase(int n) {
-    int number = abs(number);
-    string converted = "";
-
-    while (number > 0) {
-        int rem = number%26;
-        converted = (char)(rem + 'A') + converted;
-        number = (number - rem) / 26;
-
-    }
-    return converted;
-
-}
-int toint(string s) {
-
-    int alpha = 26;
-    int result = 0;
-    string temp;
-
-    // Reverse String
-    for(int i=s.size()-1; i>=0; i--) {
-        temp.push_back(s[i]);
-    }
-
-    for(int i=0; i<temp.size(); i++) {
-
-        int digit = ( pow(alpha, i) * (temp[i]) ) - 'a';
-        result+= digit;
-    }
-
-    return result;
-}
-
-string tostring(int i) {
-
-    char* alphabet = "abcdefghijklmnopqrstuvwxyz";
-    int alpha = 26;
-    string s;
-
-    if(i < alpha) {
-        s.push_back(alphabet[i]);
-        return s;
-    }
-
-    s = tostring(i/alpha);
-    cout << "Current letter is " << s << "\n";
-    s.push_back(alphabet[i%alpha]);
-
-    return s;
-}
-
+// This is where the request is split into smaller increments
+// Int z represents the amount of workers are able to work on this request
+// Taking the range of the password and dividing it over the # of available workers
+// An appropriate length is calculated called 'joblength'
+// The function 'increment' is used to traverse the range of passwords
 vector<string> split(string s1, string s2, int z) {
 
     vector<string> s;
@@ -114,40 +50,20 @@ vector<string> split(string s1, string s2, int z) {
         return s;
     }
 
-    for(int a=0; a<z; a++) {
+    for(int a=0; a<z-1; a++) {
         //cout << "For each worker\n";
         for(int i=1; i<joblength; i++) {
             temp = increment(temp, string(temp).length());
         }
-        cout << "Next Range is " << temp << "\n";
+        //cout << "Next Range is " << temp << "\n";
         s.push_back(temp);
-        if (a=z) {
-            s.push_back(end);
-            break;
-        }
     }
-    for (int i=0; i<s.size(); i++){
-        cout << s[i] << "\n";
-    }
+    s.push_back(end);
 
-    /*
-    int a = toint( string(s1) );
-    int b = toint( string(s2) );
-    int temp = (a + b) / z;
-
-    s.push_back(string(s1));
-
-    for(int i=0; i<z; i++) {
-
-        s.push_back( tostring(temp*i) );
-    }
-
-    s.push_back(string(s2));
-    */
     return s;
 }
 
-// These things don't like each other unless you use uint32_t
+// A class that handles one request
 class Assign {
 
 public:
@@ -156,7 +72,8 @@ public:
     uint32_t client;
     int length;
 	vector<uint32_t> workers;
-		
+
+	// Request Creation
 	Assign(const char * l, const char * h, const char * ha) {
 
 		low = string(l);
@@ -167,7 +84,7 @@ public:
 		hash = string(ha);
 		result = "";
 	}
-		
+	// Is the worker is assigned to this task
 	bool assigned(uint32_t w) {
 
 		for(int i=0; i<workers.size(); i++) {
@@ -178,6 +95,7 @@ public:
 		return false;
 	}
 	
+    // Destroy the worker running this task
 	void kill(uint32_t w) {
 
 		vector<uint32_t>::iterator it = workers.begin();
@@ -190,6 +108,7 @@ public:
 	}
 };
 
+// Class for all server related functions
 class Server {
 
 public:
@@ -198,14 +117,13 @@ public:
     list<Assign> notbusy, busy;
     list<uint32_t> freeworkers;
 
-	// lsp_server* connection; this thing doesn't exist BUT I HOPE IT DOES
-	// Make dat server baybay, better be int Alek
+    //Create Server
 	Server(int port) {
 
 		connection = lsp_server_create(port);
 
 	}
-
+    // Move to the next request
     void nextjob() {
 
         if(freeworkers.size() > 0 && notbusy.size() > 0) {
@@ -228,7 +146,7 @@ public:
             for(int i=0; i<job.workers.size(); i++) {
 
                 char msg[1024];
-                memset(msg, 0, 1024); //sends hash:start:end
+                memset(msg, 0, 1024);
                 char c[2] = "c";
                 char tok[] = " ";
                 strcat(msg, c);
@@ -238,29 +156,33 @@ public:
                 strcat(msg, s[i].c_str());
                 strcat(msg, tok);
                 strcat(msg, s[i+1].c_str());
-                unsigned int len = strlen(msg);     //unsigned baby
-                //printf("%d\n",strlen((const char*)msg));
-                string msgs = string( (char *)msg);
-                cout << msgs;
-                lsp_server_write(connection, (uint8_t *)msg, strlen((const char *)msg), job.workers[i]);
+                unsigned int len = strlen((const char *)msg);
+                cout << msg << "\n";
+                if (!lsp_server_write(connection, (void *)msg, strlen((const char *)msg), job.workers[i])) {
+                    cout << "There was a problem with the write to the worker.\n";
+                } 
             }
             busy.push_back(job);
         }
     }
-    //*** This shit needs work***
+    // Is the worker currently 
     bool connected(uint32_t worker) {
         if (connection->clients[worker].conn_id == -1) return false;
 
         return true;
-
-    } //how is the client handling this
+    } 
+    // All the traffic is handled here
     void read(){
 
         uint32_t conn_id;
         char buf[1024];
         memset(buf, 0, 1024);
         int bytes = lsp_server_read(connection, buf, &conn_id);
-        
+        /*
+        if (bytes == -1) {
+            cout << "There was a problem with read.\n";
+        }
+        */
         if(bytes > 0) {
             char c = buf[0];
             if(c == 'j') {
@@ -270,7 +192,8 @@ public:
                 printf("Worker %d joined.\n", conn_id);
             }
             else if(c == 'c') {
-                //printf(buf);
+
+                // Request from Request
                 char * hash, * high,* low;
                 strtok(buf, " :");
                 hash = strtok(NULL, " :");
@@ -291,7 +214,9 @@ public:
                 }
 
                 if(a != busy.end()) {
-                    lsp_server_write(connection, buf, bytes, a->client);
+                    if (!lsp_server_write(connection, (void *)buf, bytes, a->client)) {
+                        cout << "There was a problem with the write to the request.\n";
+                    }
                     strtok(buf, " :");
                     char * pass = strtok(NULL, "\n");
                     printf("Found: %s\n", pass);
@@ -311,12 +236,18 @@ public:
 
                 if(a != busy.end()) {
                     a->kill(conn_id);
+                    if(busy.empty()) {
+                        cout << "No more workers"
+                    }
                     printf("Not Found\n");
-                    lsp_server_write(connection, buf, bytes, a->client);
+                    if(!lsp_server_write(connection, (void *)buf, bytes, a->client)) {
+                        cout << "There was a problem with the write to the request.\n";
+                    }
                 }
             }
         }
     }
+    // Destroys Requests that have concluded
     void killdoneassigns() {
 
         list<Assign>::iterator it = busy.begin();
@@ -328,7 +259,9 @@ public:
                 if(it->result == "") {
 
                     char *msg = "x";
-                    lsp_server_write(connection, msg, strlen(msg), it->client);
+                    if(!lsp_server_write(connection, (void *)msg, strlen((const char *)msg), it->client)) {
+                        cout << "There was a problem with the write.\n";
+                    }
                 }
 
                 it = busy.erase(it);
@@ -338,6 +271,7 @@ public:
             }
         }
     }
+    // Destroys Idle Workers
     void killdeadworkers(){
 
         // Navigate Workers
@@ -345,8 +279,10 @@ public:
         while(w != freeworkers.end()) {
             if(!connected(*w)) {
                 //printf("Worker %d died.\n",*w);
-                printf("Disonnected");
-                lsp_server_close(connection, *w);
+                printf("Disonnected\n");
+                if(!lsp_server_close(connection, *w)) {
+                    cout << "There was a problem with closing the server.\n";
+                }
                 w = freeworkers.erase(w);
             }
             else {
@@ -361,8 +297,10 @@ public:
             while(w != a->workers.end()) {
                 if(!connected(*w)) {
                     //printf("Worker %d died.\n",*w);
-                    printf("Disconnected");
-                    lsp_server_close(connection,*w);
+                    printf("Disconnected\n");
+                    if(!lsp_server_close(connection,*w)) {
+                        cout << "There was a problem with closing the server.\n";
+                    }
                     w = a->workers.erase(w);
                 }
                 else {
@@ -376,30 +314,24 @@ public:
 };
 
 int main(int argc, char ** argv) {
+    
     srand(1234);
 	int port = 7777;
 
 	// If you don't like our port #
     if(argc > 1) port = atoi(argv[1]);
 
-    printf("Prepare for big plays\n");
-	
     Server served(port);
     
     bool keepgoing = true;
 
-	//this running forever
     while(keepgoing) {
         served.read();
         served.nextjob();
         served.killdeadworkers();
         served.killdoneassigns();
-		//Read Server
-		//Assign a Job
-		//Destroy Disconnected Workers
-		//Destroy Finished Assignments
-
     }
+
     return 0;
 
         
