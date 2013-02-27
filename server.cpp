@@ -143,6 +143,7 @@ public:
 
             vector<string> s = split(job.low, job.high, job.workers.size());
 
+            // Assign the task to the amount of workers avaiable 
             for(int i=0; i<job.workers.size(); i++) {
 
                 char msg[1024];
@@ -156,7 +157,6 @@ public:
                 strcat(msg, s[i].c_str());
                 strcat(msg, tok);
                 strcat(msg, s[i+1].c_str());
-                unsigned int len = strlen((const char *)msg);
                 cout << msg << "\n";
                 if (!lsp_server_write(connection, (void *)msg, strlen((const char *)msg), job.workers[i])) {
                     cout << "There was a problem with the write to the worker.\n";
@@ -174,15 +174,14 @@ public:
     // All the traffic is handled here
     void read(){
 
+        bool passwordfound;
         uint32_t conn_id;
         char buf[1024];
         memset(buf, 0, 1024);
         int bytes = lsp_server_read(connection, buf, &conn_id);
-        /*
         if (bytes == -1) {
             cout << "There was a problem with read.\n";
         }
-        */
         if(bytes > 0) {
             char c = buf[0];
             if(c == 'j') {
@@ -214,6 +213,7 @@ public:
                 }
 
                 if(a != busy.end()) {
+                    passwordfound = true;
                     if (!lsp_server_write(connection, (void *)buf, bytes, a->client)) {
                         cout << "There was a problem with the write to the request.\n";
                     }
@@ -236,9 +236,7 @@ public:
 
                 if(a != busy.end()) {
                     a->kill(conn_id);
-                    if(busy.empty()) {
-                        cout << "No more workers"
-                    }
+                    if(passwordfound)
                     printf("Not Found\n");
                     if(!lsp_server_write(connection, (void *)buf, bytes, a->client)) {
                         cout << "There was a problem with the write to the request.\n";
@@ -259,7 +257,7 @@ public:
                 if(it->result == "") {
 
                     char *msg = "x";
-                    if(!lsp_server_write(connection, (void *)msg, strlen((const char *)msg), it->client)) {
+                    if(!lsp_server_write(connection, msg, strlen(msg), it->client)) {
                         cout << "There was a problem with the write.\n";
                     }
                 }
@@ -278,11 +276,13 @@ public:
         list<uint32_t>::iterator w = freeworkers.begin();
         while(w != freeworkers.end()) {
             if(!connected(*w)) {
-                //printf("Worker %d died.\n",*w);
-                printf("Disonnected\n");
+                printf("Worker %d has diconnected.\n",*w);
+                //printf("Disconnected\n");
+                /*
                 if(!lsp_server_close(connection, *w)) {
                     cout << "There was a problem with closing the server.\n";
                 }
+                */
                 w = freeworkers.erase(w);
             }
             else {
@@ -296,11 +296,13 @@ public:
             vector<uint32_t>::iterator w = a->workers.begin();
             while(w != a->workers.end()) {
                 if(!connected(*w)) {
-                    //printf("Worker %d died.\n",*w);
-                    printf("Disconnected\n");
+                    printf("Worker %d has disconnected.\n",*w);
+                    //printf("Disconnected\n");
+                    /*
                     if(!lsp_server_close(connection,*w)) {
                         cout << "There was a problem with closing the server.\n";
                     }
+                    */
                     w = a->workers.erase(w);
                 }
                 else {
